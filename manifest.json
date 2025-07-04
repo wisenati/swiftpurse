@@ -1,0 +1,52 @@
+{
+  "name": "SwiftPurse",
+  "short_name": "SwiftPurse",
+  "description": "Your Secure Crypto Wallet",
+  "start_url": "/splash.html",
+  "display": "standalone",
+  "background_color": "#10002b",
+  "theme_color": "#7b2cbf",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "wallet.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "wallet.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "wallet.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "wallet.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "wallet.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "wallet.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    }
+  ]
+}

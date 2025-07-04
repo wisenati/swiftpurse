@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SwiftPurse - Deposit Crypto</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --primary-gradient: linear-gradient(135deg, #5a189a 0%, #10002b 100%);
+        --secondary-gradient: linear-gradient(135deg, #10002b 0%, #5a189a 100%);
+        --accent-gradient: linear-gradient(135deg, #f15bb5 0%, #9b5de5 100%);
+        --dark-gradient: #10002b;
+        --glass-bg: rgba(255, 255, 255, 0.1);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --text-primary: #ffffff;
+        --text-secondary: rgba(255, 255, 255, 0.8);
+        --success-color: #38b000;
+        --error-color: #d00000;
+        --bitcoin-color: #f7931a;
+        --ethereum-color: #627eea;
+        --cardano-color: #0033ad;
+        --solana-color: #00ffbd;
+        --ripple-color: #27a2db;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--dark-gradient);
+        min-height: 100vh;
+        overflow-x: hidden;
+        position: relative;
+        color: var(--text-primary);
+      }
+
+      /* Animated Background */
+      .bg-animation {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        opacity: 0.1;
+      }
+
+      .floating-shapes {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
+
+      .shape {
+        position: absolute;
+        border-radius: 50%;
+        background: var(--accent-gradient);
+        animation: float 20s infinite linear;
+      }
+
+      .shape:nth-child(1) {
+        width: 80px;
+        height: 80px;
+        left: 10%;
+        animation-delay: 0s;
+      }
+      .shape:nth-child(2) {
+        width: 120px;
+        height: 120px;
+        left: 80%;
+        animation-delay: 5s;
+      }
+      .shape:nth-child(3) {
+        width: 60px;
+        height: 60px;
+        left: 50%;
+        animation-delay: 10s;
+      }
+      .shape:nth-child(4) {
+        width: 100px;
+        height: 100px;
+        left: 20%;
+        animation-delay: 15s;
+      }
+
+      @keyframes float {
+        0% {
+          transform: translateY(100vh) rotate(0deg);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        90% {
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(-100px) rotate(360deg);
+          opacity: 0;
+        }
+      }
+
+      /* Loader */
+      .loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--dark-gradient);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease-out;
+      }
+
+      .loader-content {
+        text-align: center;
+        color: var(--text-primary);
+      }
+
+      .loader-ring {
+        width: 80px;
+        height: 80px;
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-top: 4px solid #fff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loader-text {
+        font-size: 18px;
+        font-weight: 600;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      /* Header */
+      .header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 15px 30px;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--glass-border);
+        z-index: 1000;
+        animation: slideDown 0.8s ease-out;
+      }
+
+      @keyframes slideDown {
+        from {
+          transform: translateY(-100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .nav-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        transition: transform 0.3s ease;
+      }
+
+      .logo:hover {
+        transform: scale(1.1) rotate(5deg);
+      }
+
+      .brand-name {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-primary);
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .nav-menu {
+        display: flex;
+        gap: 30px;
+        align-items: center;
+      }
+
+      .nav-link {
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        position: relative;
+      }
+
+      .nav-link:hover {
+        color: var(--text-primary);
+        transform: translateY(-2px);
+      }
+
+      .nav-link::after {
+        content: "";
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: var(--accent-gradient);
+        transition: width 0.3s ease;
+      }
+
+      .nav-link:hover::after {
+        width: 100%;
+      }
+
+      .mobile-menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        font-size: 24px;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+      }
+
+      .mobile-menu-toggle:hover {
+        transform: scale(1.1);
+      }
+
+      .mobile-menu {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 300px;
+        height: 100vh;
+        background: #10002b;
+        backdrop-filter: blur(20px);
+        padding: 80px 30px 30px;
+        transition: right 0.3s ease;
+        z-index: 999;
+      }
+
+      .mobile-menu.active {
+        right: 0;
+      }
+
+      .mobile-menu .nav-link {
+        display: block;
+        padding: 15px 0;
+        font-size: 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* Main Content */
+      .main-content {
+        min-height: 100vh;
+        padding: 120px 20px 50px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      /* Page Header */
+      .page-header {
+        text-align: center;
+        margin-bottom: 40px;
+        animation: fadeIn 0.8s ease-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .page-title {
+        font-size: 32px;
+        margin-bottom: 15px;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .page-subtitle {
+        color: var(--text-secondary);
+        font-size: 16px;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      /* Deposit Cards */
+      .deposit-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 25px;
+        margin-bottom: 40px;
+      }
+
+      .deposit-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 25px;
+        border: 1px solid var(--glass-border);
+        transition: all 0.3s ease;
+        animation: fadeIn 0.8s ease-out;
+        animation-fill-mode: both;
+      }
+
+      .deposit-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      }
+
+      .deposit-card:nth-child(1) {
+        animation-delay: 0.1s;
+      }
+      .deposit-card:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .deposit-card:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+      .deposit-card:nth-child(4) {
+        animation-delay: 0.4s;
+      }
+
+      .crypto-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .crypto-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: white;
+      }
+
+      .crypto-icon.bitcoin {
+        background-color: var(--bitcoin-color);
+      }
+      .crypto-icon.ethereum {
+        background-color: var(--ethereum-color);
+      }
+      .crypto-icon.cardano {
+        background-color: var(--cardano-color);
+      }
+      .crypto-icon.solana {
+        background-color: var(--solana-color);
+      }
+
+      .crypto-title {
+        font-size: 20px;
+        font-weight: 600;
+      }
+
+      .network-info {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .network-label {
+        color: var(--text-secondary);
+        font-size: 14px;
+      }
+
+      .network-value {
+        font-weight: 600;
+        font-size: 16px;
+      }
+
+      .address-container {
+        position: relative;
+        margin-bottom: 25px;
+      }
+
+      .address-label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--text-secondary);
+        font-size: 14px;
+      }
+
+      .address-field {
+        width: 100%;
+        padding: 12px 15px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-family: monospace;
+        font-size: 14px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding-right: 40px;
+      }
+
+      .copy-btn {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .copy-btn:hover {
+        color: var(--text-primary);
+        transform: translateY(-50%) scale(1.1);
+      }
+
+      .qr-container {
+        display: flex;
+        justify-content: center;
+        margin: 20px 0;
+      }
+
+      .qr-code {
+        width: 180px;
+        height: 180px;
+        background: white;
+        padding: 10px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: pulseGlow 2s infinite;
+      }
+
+      @keyframes pulseGlow {
+        0% {
+          box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.1);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+        }
+      }
+
+      .qr-placeholder {
+        width: 100%;
+        height: 100%;
+        background: repeating-linear-gradient(
+          45deg,
+          #f5f5f5,
+          #f5f5f5 10px,
+          #e0e0e0 10px,
+          #e0e0e0 20px
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #999;
+        font-size: 14px;
+        text-align: center;
+      }
+
+      .deposit-note {
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-top: 20px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        border-left: 3px solid var(--accent-gradient);
+      }
+
+      .deposit-note strong {
+        color: var(--text-primary);
+      }
+
+      /* Help Section */
+      .help-section {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 30px;
+        border: 1px solid var(--glass-border);
+        text-align: center;
+        margin-top: 40px;
+        animation: fadeIn 0.8s ease-out;
+      }
+
+      .help-icon {
+        font-size: 40px;
+        margin-bottom: 15px;
+        color: var(--text-primary);
+        animation: bounce 2s infinite;
+      }
+
+      @keyframes bounce {
+        0%,
+        20%,
+        50%,
+        80%,
+        100% {
+          transform: translateY(0);
+        }
+        40% {
+          transform: translateY(-15px);
+        }
+        60% {
+          transform: translateY(-7px);
+        }
+      }
+
+      .help-title {
+        font-size: 22px;
+        margin-bottom: 10px;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .help-text {
+        color: var(--text-secondary);
+        margin-bottom: 20px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .help-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 25px;
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+      }
+
+      .help-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Notification */
+      .notification {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: var(--success-color);
+        color: white;
+        padding: 15px 25px;
+        border-radius: 8px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 1000;
+        transform: translateY(100px);
+        opacity: 0;
+        transition: all 0.3s ease;
+      }
+
+      .notification.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+
+      /* Footer */
+      .footer {
+        text-align: center;
+        padding: 30px 0;
+        color: var(--text-secondary);
+        font-size: 14px;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .nav-menu {
+          display: none;
+        }
+
+        .mobile-menu-toggle {
+          display: block;
+        }
+
+        .deposit-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .page-title {
+          font-size: 28px;
+        }
+
+        .page-subtitle {
+          font-size: 14px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .header {
+          padding: 15px 20px;
+        }
+
+        .main-content {
+          padding: 100px 15px 30px;
+        }
+
+        .crypto-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+        }
+
+        .network-info {
+          flex-direction: column;
+          gap: 5px;
+        }
+
+        .qr-code {
+          width: 150px;
+          height: 150px;
+        }
+      }
+
+      /* Animations */
+      @keyframes floatUp {
+        0% {
+          transform: translateY(20px);
+          opacity: 0;
+        }
+        100% {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      /* Ripple effect */
+      .ripple {
+        position: absolute;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.3);
+        transform: scale(0);
+        animation: ripple-animation 0.6s linear;
+        pointer-events: none;
+      }
+
+      @keyframes ripple-animation {
+        to {
+          transform: scale(4);
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Loader -->
+    <div class="loader" id="loader">
+      <div class="loader-content">
+        <div class="loader-ring"></div>
+        <div class="loader-text">Preparing Your Deposit Addresses...</div>
+      </div>
+    </div>
+
+    <!-- Animated Background -->
+    <div class="bg-animation">
+      <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+      <div class="nav-container">
+        <div class="logo-container">
+          <img
+            src="https://codehubme.wordpress.com/wp-content/uploads/2025/06/file_00000000882c62439bbd2b1da125b80a_1-removebg-preview5089134587099523797.png"
+            alt="SwiftPurse Logo"
+            class="logo"
+          />
+          <span class="brand-name">SwiftPurse</span>
+        </div>
+        <nav class="nav-menu">
+          <a href="dashboard.html" class="nav-link">Dashboard</a>
+          <a href="transaction.html" class="nav-link">Transactions</a>
+          <a href="Guess.html" class="nav-link">Invest</a>
+          <a href="setting.html" class="nav-link">Settings</a>
+        </nav>
+        <button class="mobile-menu-toggle" id="mobileMenuToggle">
+          <i class="fas fa-bars"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="dashboard.html" class="nav-link">Dashboard</a>
+      <a href="transaction.html" class="nav-link">Transactions</a>
+      <a href="Guess.html" class="nav-link">Guess & Win</a>
+      <a href="setting.html" class="nav-link">Settings</a>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Page Header -->
+      <section class="page-header">
+        <h1 class="page-title">Deposit Crypto</h1>
+        <p class="page-subtitle">
+          Send cryptocurrency to your SwiftPurse wallet. Select the asset you
+          want to deposit and use the provided address.
+        </p>
+      </section>
+
+      <!-- Deposit Cards -->
+      <div class="deposit-grid">
+        <!-- Bitcoin Deposit -->
+        <div class="deposit-card">
+          <div class="crypto-header">
+            <div class="crypto-icon bitcoin">
+              <img
+                src="https://s2.coinmarketcap.com/static/img/coins/64x64/1.png"
+                alt="Bitcoin"
+                width="24"
+              />
+            </div>
+            <div class="crypto-title">Deposit Bitcoin</div>
+          </div>
+
+          <div class="network-info">
+            <span class="network-label">Network</span>
+            <span class="network-value">Bitcoin</span>
+          </div>
+
+          <div class="address-container">
+            <label class="address-label">Deposit Address</label>
+            <input
+              type="text"
+              class="address-field"
+              id="btcAddress"
+              value="19yJdZzNUkGFPTEAmmsykycbQEWkJuxF9W"
+              readonly
+            />
+            <button class="copy-btn" data-address="btcAddress">
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+
+          <div class="qr-container">
+            <div class="qr-code">
+              <div class="qr-placeholder">Scan to deposit BTC</div>
+            </div>
+          </div>
+
+          <div class="deposit-note">
+            <strong>Important:</strong> Only send BTC to this address. Sending
+            any other cryptocurrency may result in permanent loss.
+          </div>
+        </div>
+
+        <!-- Ethereum Deposit -->
+        <div class="deposit-card">
+          <div class="crypto-header">
+            <div class="crypto-icon ethereum">
+              <img
+                src="https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png"
+                alt="Ethereum"
+                width="24"
+              />
+            </div>
+            <div class="crypto-title">Deposit Ethereum</div>
+          </div>
+
+          <div class="network-info">
+            <span class="network-label">Network</span>
+            <span class="network-value">ERC-20</span>
+          </div>
+
+          <div class="address-container">
+            <label class="address-label">Deposit Address</label>
+            <input
+              type="text"
+              class="address-field"
+              id="ethAddress"
+              value="0x3d6c0154d5c3278c01a9652fa164a1f7f9818c40"
+              readonly
+            />
+            <button class="copy-btn" data-address="ethAddress">
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+
+          <div class="qr-container">
+            <div class="qr-code">
+              <div class="qr-placeholder">Scan to deposit ETH</div>
+            </div>
+          </div>
+
+          <div class="deposit-note">
+            <strong>Important:</strong> Ensure you're sending ETH or ERC-20
+            tokens only. Transactions on other networks will not be credited.
+          </div>
+        </div>
+
+        <!-- Cardano Deposit -->
+        <div class="deposit-card">
+          <div class="crypto-header">
+            <div class="crypto-icon cardano">
+              <img
+                src="https://s2.coinmarketcap.com/static/img/coins/64x64/2010.png"
+                alt="Cardano"
+                width="24"
+              />
+            </div>
+            <div class="crypto-title">Deposit Cardano</div>
+          </div>
+
+          <div class="network-info">
+            <span class="network-label">Network</span>
+            <span class="network-value">Cardano</span>
+          </div>
+
+          <div class="address-container">
+            <label class="address-label">Deposit Address</label>
+            <input
+              type="text"
+              class="address-field"
+              id="adaAddress"
+              value="addr1vxzd749ynsvh9ucr4tumk4kytnja0dlz0tv45vpl2dacc4gcc73m8"
+              readonly
+            />
+            <button class="copy-btn" data-address="adaAddress">
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+
+          <div class="qr-container">
+            <div class="qr-code">
+              <div class="qr-placeholder">Scan to deposit ADA</div>
+            </div>
+          </div>
+
+          <div class="deposit-note">
+            <strong>Important:</strong> This address is for ADA only. Do not
+            send other cryptocurrencies to this address.
+          </div>
+        </div>
+
+        <!-- Solana Deposit -->
+        <div class="deposit-card">
+          <div class="crypto-header">
+            <div class="crypto-icon solana">
+              <img
+                src="https://s2.coinmarketcap.com/static/img/coins/64x64/5426.png"
+                alt="Solana"
+                width="24"
+              />
+            </div>
+            <div class="crypto-title">Deposit Solana</div>
+          </div>
+
+          <div class="network-info">
+            <span class="network-label">Network</span>
+            <span class="network-value">Solana</span>
+          </div>
+
+          <div class="address-container">
+            <label class="address-label">Deposit Address</label>
+            <input
+              type="text"
+              class="address-field"
+              id="solAddress"
+              value="Aqm3gYxCvfp8iRuECaPeeVnQcTFhhku3znjgZPUUXXYo"
+              readonly
+            />
+            <button class="copy-btn" data-address="solAddress">
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+
+          <div class="qr-container">
+            <div class="qr-code">
+              <div class="qr-placeholder">Scan to deposit SOL</div>
+            </div>
+          </div>
+
+          <div class="deposit-note">
+            <strong>Important:</strong> Only send SOL to this address. Sending
+            other tokens may result in permanent loss.
+          </div>
+        </div>
+      </div>
+
+      <!-- Help Section -->
+      <section class="help-section">
+        <div class="help-icon">
+          <i class="fas fa-question-circle"></i>
+        </div>
+        <h2 class="help-title">Need Help With Your Deposit?</h2>
+        <p class="help-text">
+          If you're having trouble with your deposit or have any questions about
+          the process, our support team is available 24/7 to assist you.
+        </p>
+        <a href="contact.html" class="help-btn">
+          <i class="fas fa-headset"></i> Contact Support
+        </a>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>© 2025 SwiftPurse. All rights reserved.</p>
+    </footer>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+      <i class="fas fa-check-circle"></i>
+      <span id="notificationText">Address copied to clipboard!</span>
+    </div>
+
+    <script>
+      // Loader
+      window.addEventListener("load", function () {
+        setTimeout(() => {
+          const loader = document.getElementById("loader");
+          loader.style.opacity = "0";
+          setTimeout(() => {
+            loader.style.display = "none";
+          }, 500);
+        }, 1500);
+      });
+
+      // Mobile Menu Toggle
+      const mobileMenuToggle = document.getElementById("mobileMenuToggle");
+      const mobileMenu = document.getElementById("mobileMenu");
+
+      mobileMenuToggle.addEventListener("click", function () {
+        mobileMenu.classList.toggle("active");
+        const icon = this.querySelector("i");
+        if (mobileMenu.classList.contains("active")) {
+          icon.classList.remove("fa-bars");
+          icon.classList.add("fa-times");
+        } else {
+          icon.classList.remove("fa-times");
+          icon.classList.add("fa-bars");
+        }
+      });
+
+      // Close mobile menu when clicking outside
+      document.addEventListener("click", function (e) {
+        if (
+          !mobileMenu.contains(e.target) &&
+          !mobileMenuToggle.contains(e.target)
+        ) {
+          mobileMenu.classList.remove("active");
+          const icon = mobileMenuToggle.querySelector("i");
+          icon.classList.remove("fa-times");
+          icon.classList.add("fa-bars");
+        }
+      });
+
+      // Copy Address Functionality
+      document.querySelectorAll(".copy-btn").forEach((button) => {
+        button.addEventListener("click", function () {
+          const addressId = this.getAttribute("data-address");
+          const addressField = document.getElementById(addressId);
+
+          // Select the text field
+          addressField.select();
+          addressField.setSelectionRange(0, 99999); // For mobile devices
+
+          // Copy the text inside the text field
+          navigator.clipboard.writeText(addressField.value);
+
+          // Show notification
+          showNotification("Address copied to clipboard!");
+
+          // Add ripple effect
+          createRipple(event);
+        });
+      });
+
+      // Show notification
+      function showNotification(message) {
+        const notification = document.getElementById("notification");
+        const notificationText = document.getElementById("notificationText");
+
+        notificationText.textContent = message;
+        notification.classList.add("show");
+
+        setTimeout(() => {
+          notification.classList.remove("show");
+        }, 3000);
+      }
+
+      // Create ripple effect
+      function createRipple(event) {
+        const button = event.currentTarget;
+        const circle = document.createElement("span");
+        const diameter = Math.max(button.clientWidth, button.clientHeight);
+        const radius = diameter / 2;
+
+        circle.style.width = circle.style.height = `${diameter}px`;
+        circle.style.left = `${
+          event.clientX - button.getBoundingClientRect().left - radius
+        }px`;
+        circle.style.top = `${
+          event.clientY - button.getBoundingClientRect().top - radius
+        }px`;
+        circle.classList.add("ripple");
+
+        const ripple = button.getElementsByClassName("ripple")[0];
+        if (ripple) {
+          ripple.remove();
+        }
+
+        button.appendChild(circle);
+      }
+
+      // Add ripple effect to help button
+      document
+        .querySelector(".help-btn")
+        .addEventListener("click", createRipple);
+    </script>
+    <script src="security.js"></script>
+  </body>
+</html>

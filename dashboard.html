@@ -1,0 +1,1907 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SwiftPurse - Your Financial Dashboard</title>
+    <!-- Content Security Policy -->
+    <!-- <meta
+      http-equiv="Content-Security-Policy"
+      content="
+      default-src 'self' https://cdnjs.cloudflare.com https://www.gstatic.com https://pro-api.coinmarketcap.com;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://www.gstatic.com;
+      script-src-elem 'self' https://cdnjs.cloudflare.com https://www.gstatic.com;
+      style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;
+      img-src 'self' https://codehubme.wordpress.com https://s2.coinmarketcap.com data:;
+      font-src 'self' https://cdnjs.cloudflare.com;
+      connect-src 'self' https://ecommerce-79bf2-default-rtdb.firebaseio.com https://pro-api.coinmarketcap.com;
+      frame-src 'self';
+    "
+    /> -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --primary-gradient: linear-gradient(135deg, #5a189a 0%, #10002b 100%);
+        --secondary-gradient: linear-gradient(135deg, #10002b 0%, #5a189a 100%);
+        --accent-gradient: linear-gradient(135deg, #f15bb5 0%, #9b5de5 100%);
+        --dark-gradient: #10002b;
+        --glass-bg: rgba(255, 255, 255, 0.1);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --text-primary: #ffffff;
+        --text-secondary: rgba(255, 255, 255, 0.8);
+        --success-color: #38b000;
+        --error-color: #d00000;
+        --bitcoin-color: #f7931a;
+        --ethereum-color: #627eea;
+        --cardano-color: #0033ad;
+        --solana-color: #00ffbd;
+        --ripple-color: #27a2db;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--dark-gradient);
+        min-height: 100vh;
+        overflow-x: hidden;
+        position: relative;
+        color: var(--text-primary);
+      }
+
+      /* Animated Background */
+      .bg-animation {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        opacity: 0.1;
+      }
+
+      .floating-shapes {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
+
+      .shape {
+        position: absolute;
+        border-radius: 50%;
+        background: var(--accent-gradient);
+        animation: float 20s infinite linear;
+      }
+
+      .shape:nth-child(1) {
+        width: 80px;
+        height: 80px;
+        left: 10%;
+        animation-delay: 0s;
+      }
+      .shape:nth-child(2) {
+        width: 120px;
+        height: 120px;
+        left: 80%;
+        animation-delay: 5s;
+      }
+      .shape:nth-child(3) {
+        width: 60px;
+        height: 60px;
+        left: 50%;
+        animation-delay: 10s;
+      }
+      .shape:nth-child(4) {
+        width: 100px;
+        height: 100px;
+        left: 20%;
+        animation-delay: 15s;
+      }
+
+      @keyframes float {
+        0% {
+          transform: translateY(100vh) rotate(0deg);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        90% {
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(-100px) rotate(360deg);
+          opacity: 0;
+        }
+      }
+
+      /* Loader */
+      .loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--dark-gradient);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease-out;
+      }
+
+      .loader-content {
+        text-align: center;
+        color: var(--text-primary);
+      }
+
+      .loader-ring {
+        width: 80px;
+        height: 80px;
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-top: 4px solid #fff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loader-text {
+        font-size: 18px;
+        font-weight: 600;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      /* Header */
+      .header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 15px 30px;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--glass-border);
+        z-index: 1000;
+        animation: slideDown 0.8s ease-out;
+      }
+
+      @keyframes slideDown {
+        from {
+          transform: translateY(-100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .nav-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        transition: transform 0.3s ease;
+      }
+
+      .logo:hover {
+        transform: scale(1.1) rotate(5deg);
+      }
+
+      .brand-name {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-primary);
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .nav-menu {
+        display: flex;
+        gap: 30px;
+        align-items: center;
+      }
+
+      .nav-link {
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        position: relative;
+      }
+
+      .nav-link:hover {
+        color: var(--text-primary);
+        transform: translateY(-2px);
+      }
+
+      .nav-link::after {
+        content: "";
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: var(--accent-gradient);
+        transition: width 0.3s ease;
+      }
+
+      .nav-link:hover::after {
+        width: 100%;
+      }
+
+      .mobile-menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        font-size: 24px;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+      }
+
+      .mobile-menu-toggle:hover {
+        transform: scale(1.1);
+      }
+
+      .mobile-menu {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 300px;
+        height: 100vh;
+        background: #10002b;
+        backdrop-filter: blur(20px);
+        padding: 80px 30px 30px;
+        transition: right 0.3s ease;
+        z-index: 999;
+      }
+
+      .mobile-menu.active {
+        right: 0;
+      }
+
+      .mobile-menu .nav-link {
+        display: block;
+        padding: 15px 0;
+        font-size: 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* Main Content */
+      .main-content {
+        min-height: 100vh;
+        padding: 120px 20px 50px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      /* Welcome Section */
+      .welcome-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 40px;
+        animation: fadeIn 0.8s ease-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .welcome-content {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .user-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--accent-gradient);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease;
+      }
+
+      .user-avatar:hover {
+        transform: scale(1.1) rotate(10deg);
+      }
+
+      .user-info h2 {
+        font-size: 24px;
+        margin-bottom: 5px;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .user-info p {
+        color: var(--text-secondary);
+        font-size: 14px;
+      }
+
+      .account-number {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 14px;
+        border: 1px solid var(--glass-border);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* Balance Card */
+      .balance-card {
+        background: var(--primary-gradient);
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        position: relative;
+        overflow: hidden;
+        animation: slideUp 0.8s ease-out;
+        transition: transform 0.3s ease;
+      }
+
+      .balance-card:hover {
+        transform: translateY(-5px);
+      }
+
+      .balance-card::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.1) 0%,
+          transparent 70%
+        );
+        animation: rotate 15s linear infinite;
+      }
+
+      @keyframes rotate {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .balance-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .balance-title {
+        font-size: 18px;
+        color: var(--text-secondary);
+      }
+
+      .balance-amount {
+        font-size: 36px;
+        font-weight: 700;
+        margin-bottom: 5px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .balance-actions {
+        display: flex;
+        gap: 15px;
+        margin-top: 25px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .balance-btn {
+        flex: 1;
+        padding: 12px;
+        border-radius: 12px;
+        border: none;
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        color: var(--text-primary);
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        border: 1px solid var(--glass-border);
+      }
+
+      .balance-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      .balance-btn:active {
+        transform: translateY(0);
+      }
+
+      /* Crypto Section */
+      .section-title {
+        font-size: 22px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        position: relative;
+        padding-bottom: 10px;
+      }
+
+      .section-title::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 60px;
+        height: 3px;
+        background: var(--accent-gradient);
+        border-radius: 3px;
+      }
+
+      .crypto-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+      }
+
+      .crypto-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 20px;
+        border: 1px solid var(--glass-border);
+        transition: all 0.3s ease;
+        animation: fadeIn 0.8s ease-out;
+        animation-fill-mode: both;
+      }
+
+      .crypto-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      }
+
+      .crypto-card:nth-child(1) {
+        animation-delay: 0.1s;
+      }
+      .crypto-card:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .crypto-card:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+      .crypto-card:nth-child(4) {
+        animation-delay: 0.4s;
+      }
+
+      .crypto-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+
+      .crypto-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .crypto-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: white;
+      }
+
+      .crypto-icon.bitcoin {
+        background-color: var(--bitcoin-color);
+      }
+      .crypto-icon.ethereum {
+        background-color: var(--ethereum-color);
+      }
+      .crypto-icon.cardano {
+        background-color: var(--cardano-color);
+      }
+      .crypto-icon.solana {
+        background-color: var(--solana-color);
+      }
+      .crypto-icon.ripple {
+        background-color: var(--ripple-color);
+      }
+
+      .crypto-name {
+        font-weight: 600;
+      }
+
+      .crypto-symbol {
+        color: var(--text-secondary);
+        font-size: 14px;
+      }
+
+      .crypto-price {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 5px;
+      }
+
+      .crypto-change {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .crypto-change.positive {
+        background-color: rgba(56, 176, 0, 0.2);
+        color: var(--success-color);
+      }
+
+      .crypto-change.negative {
+        background-color: rgba(208, 0, 0, 0.2);
+        color: var(--error-color);
+      }
+
+      .crypto-stats {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 15px;
+        font-size: 14px;
+      }
+
+      .stat-label {
+        color: var(--text-secondary);
+      }
+
+      .stat-value {
+        font-weight: 600;
+      }
+
+      .crypto-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .action-btn {
+        flex: 1;
+        padding: 8px;
+        border-radius: 8px;
+        border: none;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .buy-btn {
+        background: var(--success-color);
+        color: white;
+      }
+
+      .sell-btn {
+        background: var(--glass-bg);
+        color: var(--text-primary);
+        border: 1px solid var(--glass-border);
+      }
+
+      .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Market Data Section */
+      .market-data {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 25px;
+        border: 1px solid var(--glass-border);
+        margin-bottom: 40px;
+        animation: fadeIn 0.8s ease-out;
+      }
+
+      .market-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .market-title {
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .refresh-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.3s ease;
+      }
+
+      .refresh-btn:hover {
+        color: var(--text-primary);
+        transform: rotate(360deg);
+      }
+
+      .market-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 20px;
+      }
+
+      .stat-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 15px;
+        transition: all 0.3s ease;
+      }
+
+      .stat-card:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-3px);
+      }
+
+      .stat-title {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+      }
+
+      .stat-value-lg {
+        font-size: 22px;
+        font-weight: 700;
+      }
+
+      /* Trading Signals */
+      .signals-container {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 25px;
+        border: 1px solid var(--glass-border);
+        animation: fadeIn 0.8s ease-out;
+      }
+
+      .signal-item {
+        display: flex;
+        align-items: center;
+        padding: 15px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .signal-item:last-child {
+        border-bottom: none;
+      }
+
+      .signal-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        font-size: 16px;
+      }
+
+      .signal-icon.buy {
+        background-color: rgba(56, 176, 0, 0.2);
+        color: var(--success-color);
+      }
+
+      .signal-icon.sell {
+        background-color: rgba(208, 0, 0, 0.2);
+        color: var(--error-color);
+      }
+
+      .signal-icon.hold {
+        background-color: rgba(255, 165, 0, 0.2);
+        color: orange;
+      }
+
+      .signal-content {
+        flex: 1;
+      }
+
+      .signal-crypto {
+        font-weight: 600;
+        margin-bottom: 3px;
+      }
+
+      .signal-message {
+        font-size: 14px;
+        color: var(--text-secondary);
+      }
+
+      .signal-time {
+        font-size: 12px;
+        color: var(--text-secondary);
+        text-align: right;
+      }
+
+      /* Footer */
+      .footer {
+        text-align: center;
+        padding: 30px 0;
+        color: var(--text-secondary);
+        font-size: 14px;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 992px) {
+        .welcome-section {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 20px;
+        }
+
+        .account-number {
+          align-self: flex-start;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .nav-menu {
+          display: none;
+        }
+
+        .mobile-menu-toggle {
+          display: block;
+        }
+
+        .balance-actions {
+          flex-direction: column;
+        }
+
+        .balance-btn {
+          width: 100%;
+        }
+
+        .crypto-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .market-stats {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .header {
+          padding: 15px 20px;
+        }
+
+        .welcome-content {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+        }
+
+        .user-avatar {
+          width: 50px;
+          height: 50px;
+          font-size: 20px;
+        }
+
+        .balance-card {
+          padding: 20px;
+        }
+
+        .balance-amount {
+          font-size: 28px;
+        }
+
+        .market-stats {
+          grid-template-columns: 1fr;
+        }
+
+        .mobile-menu {
+          width: 100%;
+          right: -100%;
+        }
+      }
+
+      /* Animations */
+      @keyframes floatUp {
+        0% {
+          transform: translateY(20px);
+          opacity: 0;
+        }
+        100% {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes pulseGlow {
+        0% {
+          box-shadow: 0 0 0 0 rgba(241, 91, 181, 0.4);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(241, 91, 181, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(241, 91, 181, 0);
+        }
+      }
+
+      /* Ripple effect */
+      .ripple {
+        position: absolute;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.3);
+        transform: scale(0);
+        animation: ripple-animation 0.6s linear;
+        pointer-events: none;
+      }
+
+      @keyframes ripple-animation {
+        to {
+          transform: scale(4);
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Loader -->
+    <div class="loader" id="loader">
+      <div class="loader-content">
+        <div class="loader-ring"></div>
+        <div class="loader-text">Loading Your Dashboard...</div>
+      </div>
+    </div>
+
+    <!-- Animated Background -->
+    <div class="bg-animation">
+      <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+      <div class="nav-container">
+        <div class="logo-container">
+          <img
+            src="https://codehubme.wordpress.com/wp-content/uploads/2025/06/file_00000000882c62439bbd2b1da125b80a_1-removebg-preview5089134587099523797.png"
+            alt="SwiftPurse Logo"
+            class="logo"
+          />
+          <span class="brand-name">SwiftPurse</span>
+        </div>
+        <nav class="nav-menu">
+          <a href="dashboard.html" class="nav-link">Dashboard</a>
+          <a href="transaction.html" class="nav-link">Transactions</a>
+          <a href="Guess.html" class="nav-link">Guess & Win</a>
+          <a href="setting.html" class="nav-link">Settings</a>
+          <a href="swap.html" class="nav-link">Swap NGN to $$</a>
+        </nav>
+        <button class="mobile-menu-toggle" id="mobileMenuToggle">
+          <i class="fas fa-bars"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="dashboard.html" class="nav-link">Dashboard</a>
+      <a href="transaction.html" class="nav-link">Transactions</a>
+      <a href="Guess.html" class="nav-link">Guess and Win</a>
+      <a href="setting.html" class="nav-link">Settings</a>
+      <a href="chat.html" class="nav-link">Send Message</a>
+      <a href="swap.html" class="nav-link">Swap NGN to $$</a>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Welcome Section -->
+      <section class="welcome-section">
+        <div class="welcome-content">
+          <div class="user-avatar" id="userAvatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="user-info">
+            <h2 id="userName">Welcome Back</h2>
+            <p>Good to see you again</p>
+          </div>
+        </div>
+        <div class="account-number">
+          <i class="fas fa-wallet"></i>
+          <span id="accountNumber">Loading...</span>
+        </div>
+      </section>
+
+      <!-- Balance Card -->
+      <section class="balance-card">
+        <div class="balance-header">
+          <div class="balance-title">Your Balance</div>
+          <i class="fas fa-coins"></i>
+        </div>
+        <div class="balance-amount" id="balanceAmount">$0.00</div>
+        <div class="balance-actions">
+          <button class="balance-btn" id="withdrawBtn">
+            <i class="fas fa-arrow-up"></i> Withdraw
+          </button>
+          <button class="balance-btn" id="receiveBtn">
+            <i class="fas fa-arrow-down"></i> Receive
+          </button>
+        </div>
+      </section>
+
+      <!-- Crypto Assets Section -->
+      <section>
+        <h2 class="section-title">
+          <i class="fas fa-coins"></i> Your Crypto Assets
+        </h2>
+        <div class="crypto-grid">
+          <!-- Bitcoin -->
+          <div class="crypto-card">
+            <div class="crypto-header">
+              <div class="crypto-info">
+                <div class="crypto-icon bitcoin">
+                  <img
+                    src="https://s2.coinmarketcap.com/static/img/coins/64x64/1.png"
+                    alt="Bitcoin"
+                    width="24"
+                  />
+                </div>
+                <div>
+                  <div class="crypto-name">Bitcoin</div>
+                  <div class="crypto-symbol">BTC</div>
+                </div>
+              </div>
+              <div class="crypto-price" id="btcPrice">$0.00</div>
+            </div>
+            <div class="crypto-change positive" id="btcChange">+0.00%</div>
+            <div class="crypto-stats">
+              <div>
+                <div class="stat-label">Your Balance</div>
+                <div class="stat-value" id="btcBalance">0.000000 BTC</div>
+              </div>
+              <div>
+                <div class="stat-label">Value</div>
+                <div class="stat-value" id="btcValue">$0.00</div>
+              </div>
+            </div>
+            <div class="crypto-actions">
+              <button class="action-btn buy-btn" data-crypto="BTC">
+                <i class="fas fa-arrow-up"></i> Buy
+              </button>
+              <button class="action-btn sell-btn" data-crypto="BTC">
+                <i class="fas fa-arrow-down"></i> Sell
+              </button>
+            </div>
+          </div>
+
+          <!-- Ethereum -->
+          <div class="crypto-card">
+            <div class="crypto-header">
+              <div class="crypto-info">
+                <div class="crypto-icon ethereum">
+                  <img
+                    src="https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png"
+                    alt="Ethereum"
+                    width="24"
+                  />
+                </div>
+                <div>
+                  <div class="crypto-name">Ethereum</div>
+                  <div class="crypto-symbol">ETH</div>
+                </div>
+              </div>
+              <div class="crypto-price" id="ethPrice">$0.00</div>
+            </div>
+            <div class="crypto-change positive" id="ethChange">+0.00%</div>
+            <div class="crypto-stats">
+              <div>
+                <div class="stat-label">Your Balance</div>
+                <div class="stat-value" id="ethBalance">0.000000 ETH</div>
+              </div>
+              <div>
+                <div class="stat-label">Value</div>
+                <div class="stat-value" id="ethValue">$0.00</div>
+              </div>
+            </div>
+            <div class="crypto-actions">
+              <button class="action-btn buy-btn" data-crypto="ETH">
+                <i class="fas fa-arrow-up"></i> Buy
+              </button>
+              <button class="action-btn sell-btn" data-crypto="ETH">
+                <i class="fas fa-arrow-down"></i> Sell
+              </button>
+            </div>
+          </div>
+
+          <!-- Cardano -->
+          <div class="crypto-card">
+            <div class="crypto-header">
+              <div class="crypto-info">
+                <div class="crypto-icon cardano">
+                  <img
+                    src="https://s2.coinmarketcap.com/static/img/coins/64x64/2010.png"
+                    alt="Cardano"
+                    width="24"
+                  />
+                </div>
+                <div>
+                  <div class="crypto-name">Cardano</div>
+                  <div class="crypto-symbol">ADA</div>
+                </div>
+              </div>
+              <div class="crypto-price" id="adaPrice">$0.00</div>
+            </div>
+            <div class="crypto-change negative" id="adaChange">-0.00%</div>
+            <div class="crypto-stats">
+              <div>
+                <div class="stat-label">Your Balance</div>
+                <div class="stat-value" id="adaBalance">0.000000 ADA</div>
+              </div>
+              <div>
+                <div class="stat-label">Value</div>
+                <div class="stat-value" id="adaValue">$0.00</div>
+              </div>
+            </div>
+            <div class="crypto-actions">
+              <button class="action-btn buy-btn" data-crypto="ADA">
+                <i class="fas fa-arrow-up"></i> Buy
+              </button>
+              <button class="action-btn sell-btn" data-crypto="ADA">
+                <i class="fas fa-arrow-down"></i> Sell
+              </button>
+            </div>
+          </div>
+
+          <!-- Solana -->
+          <div class="crypto-card">
+            <div class="crypto-header">
+              <div class="crypto-info">
+                <div class="crypto-icon solana">
+                  <img
+                    src="https://s2.coinmarketcap.com/static/img/coins/64x64/5426.png"
+                    alt="Solana"
+                    width="24"
+                  />
+                </div>
+                <div>
+                  <div class="crypto-name">Solana</div>
+                  <div class="crypto-symbol">SOL</div>
+                </div>
+              </div>
+              <div class="crypto-price" id="solPrice">$0.00</div>
+            </div>
+            <div class="crypto-change positive" id="solChange">+0.00%</div>
+            <div class="crypto-stats">
+              <div>
+                <div class="stat-label">Your Balance</div>
+                <div class="stat-value" id="solBalance">0.000000 SOL</div>
+              </div>
+              <div>
+                <div class="stat-label">Value</div>
+                <div class="stat-value" id="solValue">$0.00</div>
+              </div>
+            </div>
+            <div class="crypto-actions">
+              <button class="action-btn buy-btn" data-crypto="SOL">
+                <i class="fas fa-arrow-up"></i> Buy
+              </button>
+              <button class="action-btn sell-btn" data-crypto="SOL">
+                <i class="fas fa-arrow-down"></i> Sell
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Market Data Section -->
+      <section class="market-data">
+        <div class="market-header">
+          <h3 class="market-title">
+            <i class="fas fa-chart-line"></i> Market Overview
+          </h3>
+          <button class="refresh-btn" id="refreshMarketData">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+        <div class="market-stats">
+          <div class="stat-card">
+            <div class="stat-title">Total Market Cap</div>
+            <div class="stat-value-lg" id="marketCap">$0.00</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-title">24h Volume</div>
+            <div class="stat-value-lg" id="marketVolume">$0.00</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-title">BTC Dominance</div>
+            <div class="stat-value-lg" id="btcDominance">0.00%</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-title">ETH Dominance</div>
+            <div class="stat-value-lg" id="ethDominance">0.00%</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Trading Signals Section -->
+      <section>
+        <h2 class="section-title">
+          <i class="fas fa-bell"></i> Trading Signals
+        </h2>
+        <div class="signals-container">
+          <div class="signal-item">
+            <div class="signal-icon buy">
+              <i class="fas fa-arrow-up"></i>
+            </div>
+            <div class="signal-content">
+              <div class="signal-crypto">Bitcoin (BTC)</div>
+              <div class="signal-message">
+                Strong buy signal detected. RSI below 30 indicates oversold
+                conditions.
+              </div>
+            </div>
+            <div class="signal-time">Just now</div>
+          </div>
+          <div class="signal-item">
+            <div class="signal-icon sell">
+              <i class="fas fa-arrow-down"></i>
+            </div>
+            <div class="signal-content">
+              <div class="signal-crypto">Cardano (ADA)</div>
+              <div class="signal-message">
+                Consider taking profits. Resistance level approaching at $0.45.
+              </div>
+            </div>
+            <div class="signal-time">5 min ago</div>
+          </div>
+          <div class="signal-item">
+            <div class="signal-icon hold">
+              <i class="fas fa-pause"></i>
+            </div>
+            <div class="signal-content">
+              <div class="signal-crypto">Ethereum (ETH)</div>
+              <div class="signal-message">
+                Neutral signal. Waiting for breakout above $1,800 resistance.
+              </div>
+            </div>
+            <div class="signal-time">1 hour ago</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>© 2025 SwiftPurse. All rights reserved.</p>
+    </footer>
+
+    <script>
+      // Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyBNtrsRJoq82G4vSJnNLtcuIgGNMQu7dsw",
+        authDomain: "ecommerce-79bf2.firebaseapp.com",
+        databaseURL: "https://ecommerce-79bf2-default-rtdb.firebaseio.com/",
+        projectId: "ecommerce-79bf2",
+        storageBucket: "ecommerce-79bf2.appspot.com",
+        messagingSenderId: "420163739618",
+        appId: "1:420163739618:android:45d0da5b4acf0fff9663bb",
+      };
+
+      // Initialize Firebase
+      const app = firebase.initializeApp(firebaseConfig);
+      const database = firebase.database();
+
+      // Loader
+      window.addEventListener("load", function () {
+        setTimeout(() => {
+          const loader = document.getElementById("loader");
+          loader.style.opacity = "0";
+          setTimeout(() => {
+            loader.style.display = "none";
+          }, 500);
+        }, 1500);
+      });
+
+      // Mobile Menu Toggle
+      const mobileMenuToggle = document.getElementById("mobileMenuToggle");
+      const mobileMenu = document.getElementById("mobileMenu");
+
+      mobileMenuToggle.addEventListener("click", function () {
+        mobileMenu.classList.toggle("active");
+        const icon = this.querySelector("i");
+        if (mobileMenu.classList.contains("active")) {
+          icon.classList.remove("fa-bars");
+          icon.classList.add("fa-times");
+        } else {
+          icon.classList.remove("fa-times");
+          icon.classList.add("fa-bars");
+        }
+      });
+
+      // Close mobile menu when clicking outside
+      document.addEventListener("click", function (e) {
+        if (
+          !mobileMenu.contains(e.target) &&
+          !mobileMenuToggle.contains(e.target)
+        ) {
+          mobileMenu.classList.remove("active");
+          const icon = mobileMenuToggle.querySelector("i");
+          icon.classList.remove("fa-times");
+          icon.classList.add("fa-bars");
+        }
+      });
+
+      // Get user data from Firebase
+      document.addEventListener("DOMContentLoaded", function () {
+        const userId = sessionStorage.getItem("swiftPurseUserId");
+        const userEmail = sessionStorage.getItem("swiftPurseUserEmail");
+
+        if (!userId) {
+          window.location.href = "login.html";
+          return;
+        }
+
+        // Get user data from Firebase
+        const userRef = database.ref("swiftusers/" + userId);
+        userRef.on("value", (snapshot) => {
+          const userData = snapshot.val();
+          if (userData) {
+            // Update user info
+            document.getElementById(
+              "userName"
+            ).textContent = `Welcome, ${userData.firstName}`;
+            document.getElementById("accountNumber").textContent =
+              userData.accountNumber;
+            document.getElementById(
+              "balanceAmount"
+            ).textContent = `$${parseFloat(userData.balance).toFixed(3)}`;
+
+            // Set user avatar initials
+            const avatar = document.getElementById("userAvatar");
+            const initials = `${userData.firstName.charAt(
+              0
+            )}${userData.lastName.charAt(0)}`.toUpperCase();
+            avatar.innerHTML = initials;
+          }
+        });
+
+        // Fetch crypto data
+        fetchCryptoData();
+
+        // Set up refresh button
+        document
+          .getElementById("refreshMarketData")
+          .addEventListener("click", fetchCryptoData);
+
+        // Set up action buttons
+        document.getElementById("withdrawBtn").addEventListener("click", () => {
+          window.location.href = "withdraw.html";
+        });
+
+        document.getElementById("receiveBtn").addEventListener("click", () => {
+          window.location.href = "receive.html";
+        });
+
+        // Set up buy/sell buttons
+        document.querySelectorAll(".action-btn").forEach((btn) => {
+          btn.addEventListener("click", function () {
+            const crypto = this.getAttribute("data-crypto");
+            const action = this.classList.contains("buy-btn") ? "buy" : "sell";
+            const userId = sessionStorage.getItem("swiftPurseUserId");
+
+            if (!userId) {
+              showNotification("error", "Please login to perform this action");
+              return;
+            }
+
+            // Get user balance from Firebase
+            const userRef = database.ref("swiftusers/" + userId);
+            userRef.once("value").then((snapshot) => {
+              const userData = snapshot.val();
+              const userBalance = parseFloat(userData.balance);
+              const minBalanceRequired = 100; // $100 minimum balance
+
+              if (action === "buy" && userBalance < minBalanceRequired) {
+                showNotification(
+                  "error",
+                  `Insufficient balance for ${crypto} purchase`,
+                  `You need at least $${minBalanceRequired} to buy ${crypto}. Your current balance is $${userBalance.toFixed(
+                    2
+                  )}.`
+                );
+              } else {
+                // Process the trade (in a real app, this would connect to your trading API)
+                processTrade(action, crypto, userData)
+                  .then(() => {
+                    showNotification(
+                      "success",
+                      `${action.toUpperCase()} order placed`,
+                      `Your ${crypto} ${action} order has been received and will be processed shortly.`
+                    );
+                  })
+                  .catch((error) => {
+                    showNotification(
+                      "error",
+                      "Trade failed",
+                      `We couldn't process your ${action} order: ${error.message}`
+                    );
+                  });
+              }
+            });
+          });
+        });
+
+        // Process trade (simulated - replace with actual API call in production)
+        function processTrade(action, crypto, userData) {
+          return new Promise((resolve) => {
+            // Simulate API delay
+            setTimeout(() => {
+              // In a real app, you would:
+              // 1. Call your trading API
+              // 2. Update Firebase with the new balance
+              // 3. Update the user's portfolio
+              resolve();
+            }, 1000);
+          });
+        }
+
+        // Notification system
+        function showNotification(type, title, message = "") {
+          // Remove any existing notifications
+          const existingNotification = document.querySelector(
+            ".custom-notification"
+          );
+          if (existingNotification) {
+            existingNotification.remove();
+          }
+
+          // Create notification element
+          const notification = document.createElement("div");
+          notification.className = `custom-notification ${type}`;
+
+          // Notification icon based on type
+          let icon;
+          if (type === "success") {
+            icon = '<i class="fas fa-check-circle"></i>';
+          } else if (type === "error") {
+            icon = '<i class="fas fa-exclamation-circle"></i>';
+          } else {
+            icon = '<i class="fas fa-info-circle"></i>';
+          }
+
+          notification.innerHTML = `
+    <div class="notification-icon">${icon}</div>
+    <div class="notification-content">
+      <div class="notification-title">${title}</div>
+      ${message ? `<div class="notification-message">${message}</div>` : ""}
+    </div>
+    <button class="notification-close">
+      <i class="fas fa-times"></i>
+    </button>
+  `;
+
+          // Add close button functionality
+          notification
+            .querySelector(".notification-close")
+            .addEventListener("click", () => {
+              notification.style.transform = "translateX(100%)";
+              setTimeout(() => notification.remove(), 300);
+            });
+
+          // Auto-remove after 5 seconds
+          const autoRemove = setTimeout(() => {
+            notification.style.transform = "translateX(100%)";
+            setTimeout(() => notification.remove(), 300);
+          }, 5000);
+
+          // Pause auto-remove on hover
+          notification.addEventListener("mouseenter", () => {
+            clearTimeout(autoRemove);
+          });
+
+          notification.addEventListener("mouseleave", () => {
+            setTimeout(() => {
+              notification.style.transform = "translateX(100%)";
+              setTimeout(() => notification.remove(), 300);
+            }, 3000);
+          });
+
+          // Add to DOM
+          document.body.appendChild(notification);
+
+          // Trigger animation
+          setTimeout(() => {
+            notification.style.transform = "translateX(0)";
+          }, 10);
+        }
+
+        // Add CSS for notifications (add this to your style section)
+        const notificationStyles = `
+  .custom-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 350px;
+    padding: 15px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    z-index: 10000;
+    transform: translateX(100%);
+    transition: transform 0.3s ease-out;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .custom-notification.success {
+    background: rgba(56, 176, 0, 0.2);
+    border-left: 4px solid var(--success-color);
+  }
+  
+  .custom-notification.error {
+    background: rgba(208, 0, 0, 0.2);
+    border-left: 4px solid var(--error-color);
+  }
+  
+  .notification-icon {
+    font-size: 24px;
+  }
+  
+  .notification-icon i {
+    display: flex;
+  }
+  
+  .success .notification-icon {
+    color: var(--success-color);
+  }
+  
+  .error .notification-icon {
+    color: var(--error-color);
+  }
+  
+  .notification-content {
+    flex: 1;
+  }
+  
+  .notification-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+  
+  .notification-message {
+    font-size: 14px;
+    opacity: 0.8;
+  }
+  
+  .notification-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 5px;
+    font-size: 14px;
+    transition: color 0.3s ease;
+  }
+  
+  .notification-close:hover {
+    color: var(--text-primary);
+  }
+  
+  @media (max-width: 480px) {
+    .custom-notification {
+      width: calc(100% - 40px);
+      right: 20px;
+      left: 20px;
+    }
+  }
+`;
+
+        // Add notification styles to the document
+        const styleElement = document.createElement("style");
+        styleElement.textContent = notificationStyles;
+        document.head.appendChild(styleElement);
+
+        // Add ripple effect to buttons
+        function createRipple(event) {
+          const button = event.currentTarget;
+          const circle = document.createElement("span");
+          const diameter = Math.max(button.clientWidth, button.clientHeight);
+          const radius = diameter / 2;
+
+          circle.style.width = circle.style.height = `${diameter}px`;
+          circle.style.left = `${
+            event.clientX - button.getBoundingClientRect().left - radius
+          }px`;
+          circle.style.top = `${
+            event.clientY - button.getBoundingClientRect().top - radius
+          }px`;
+          circle.classList.add("ripple");
+
+          const ripple = button.getElementsByClassName("ripple")[0];
+          if (ripple) {
+            ripple.remove();
+          }
+
+          button.appendChild(circle);
+        }
+
+        document
+          .querySelectorAll(".balance-btn, .action-btn, .refresh-btn")
+          .forEach((button) => {
+            button.addEventListener("click", createRipple);
+          });
+      });
+
+      // Fetch crypto data from CoinGecko API
+      async function fetchCryptoData() {
+        const refreshBtn = document.getElementById("refreshMarketData");
+        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading';
+
+        try {
+          // Fetch cryptocurrency data from CoinGecko API
+          const response = await fetch(
+            "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,cardano,solana&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h"
+          );
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch cryptocurrency data");
+          }
+
+          const cryptoData = await response.json();
+
+          // Fetch global market data
+          const globalResponse = await fetch(
+            "https://api.coingecko.com/api/v3/global"
+          );
+
+          if (!globalResponse.ok) {
+            throw new Error("Failed to fetch global market data");
+          }
+
+          const globalData = await globalResponse.json();
+
+          // Process and update the UI with real data
+          cryptoData.forEach((crypto) => {
+            const symbol = crypto.symbol.toUpperCase();
+            updateCryptoPrice(
+              symbol,
+              crypto.current_price,
+              crypto.price_change_percentage_24h
+            );
+          });
+
+          // Update global market data
+          const marketCap = globalData.data.total_market_cap.usd;
+          const marketVolume = globalData.data.total_volume.usd;
+          const btcDominance = globalData.data.market_cap_percentage.btc;
+          const ethDominance = globalData.data.market_cap_percentage.eth;
+
+          document.getElementById(
+            "marketCap"
+          ).textContent = `$${formatLargeNumber(marketCap)}`;
+          document.getElementById(
+            "marketVolume"
+          ).textContent = `$${formatLargeNumber(marketVolume)}`;
+          document.getElementById(
+            "btcDominance"
+          ).textContent = `${btcDominance.toFixed(2)}%`;
+          document.getElementById(
+            "ethDominance"
+          ).textContent = `${ethDominance.toFixed(2)}%`;
+        } catch (error) {
+          console.error("Error fetching crypto data:", error);
+          alert("Failed to fetch cryptocurrency data. Please try again later.");
+        } finally {
+          refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+        }
+      }
+
+      function updateCryptoPrice(symbol, price, change) {
+        // Update price display
+        document.getElementById(
+          `${symbol.toLowerCase()}Price`
+        ).textContent = `$${price.toFixed(2)}`;
+
+        // Update change display
+        const changeElement = document.getElementById(
+          `${symbol.toLowerCase()}Change`
+        );
+        const isPositive = change >= 0;
+        changeElement.textContent = `${isPositive ? "+" : ""}${change.toFixed(
+          2
+        )}%`;
+        changeElement.className = `crypto-change ${
+          isPositive ? "positive" : "negative"
+        }`;
+
+        // Update value if user has any balance (in a real app, this would come from Firebase)
+        document.getElementById(`${symbol.toLowerCase()}Value`).textContent =
+          "$0.00";
+      }
+
+      // Helper function to format large numbers (millions, billions, etc.)
+      function formatLargeNumber(num) {
+        if (num >= 1000000000000) {
+          return `${(num / 1000000000000).toFixed(2)}T`;
+        }
+        if (num >= 1000000000) {
+          return `${(num / 1000000000).toFixed(2)}B`;
+        }
+        if (num >= 1000000) {
+          return `${(num / 1000000).toFixed(2)}M`;
+        }
+        return num.toFixed(2);
+      }
+    </script>
+    <script>
+      // Trading Signals Generator
+      document.addEventListener("DOMContentLoaded", function () {
+        // Fetch crypto data and generate signals
+        generateTradingSignals();
+
+        // Refresh signals every 5 minutes
+        setInterval(generateTradingSignals, 300000);
+      });
+
+      async function generateTradingSignals() {
+        try {
+          // Fetch market data from CoinGecko API
+          const response = await fetch(
+            "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,cardano,solana&order=market_cap_desc&sparkline=false&price_change_percentage=24h"
+          );
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch market data");
+          }
+
+          const cryptoData = await response.json();
+
+          // Clear existing signals
+          const signalsContainer = document.querySelector(".signals-container");
+          signalsContainer.innerHTML = "";
+
+          // Generate signals for each cryptocurrency
+          cryptoData.forEach((crypto) => {
+            const signal = analyzeCrypto(crypto);
+            const signalElement = createSignalElement(signal);
+            signalsContainer.appendChild(signalElement);
+          });
+
+          // Add timestamp
+          const timestamp = document.createElement("div");
+          timestamp.className = "signals-timestamp";
+          timestamp.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+          signalsContainer.appendChild(timestamp);
+        } catch (error) {
+          console.error("Error generating trading signals:", error);
+          // Fallback to default signals if API fails
+          showDefaultSignals();
+        }
+      }
+
+      function analyzeCrypto(crypto) {
+        const priceChange24h = crypto.price_change_percentage_24h;
+        const currentPrice = crypto.current_price;
+        const symbol = crypto.symbol.toUpperCase();
+
+        // Simple analysis logic (expand with more sophisticated analysis in production)
+        if (priceChange24h < -5) {
+          // Significant drop - potential buy opportunity
+          return {
+            crypto: `${crypto.name} (${symbol})`,
+            type: "buy",
+            message: `Strong buy signal. Price dropped ${Math.abs(
+              priceChange24h
+            ).toFixed(2)}% in 24h. RSI indicates oversold conditions.`,
+            time: "Just now",
+          };
+        } else if (priceChange24h > 10) {
+          // Significant gain - potential sell opportunity
+          const resistancePrice = (currentPrice * 1.05).toFixed(2);
+          return {
+            crypto: `${crypto.name} (${symbol})`,
+            type: "sell",
+            message: `Consider taking profits. Price up ${priceChange24h.toFixed(
+              2
+            )}% in 24h. Next resistance at $${resistancePrice}.`,
+            time: "Just now",
+          };
+        } else {
+          // Neutral signal
+          const resistancePrice = (currentPrice * 1.1).toFixed(2);
+          const supportPrice = (currentPrice * 0.95).toFixed(2);
+          return {
+            crypto: `${crypto.name} (${symbol})`,
+            type: "hold",
+            message: `Neutral signal. Watching for breakout above $${resistancePrice} or below $${supportPrice}.`,
+            time: "Just now",
+          };
+        }
+      }
+
+      function createSignalElement(signal) {
+        const signalItem = document.createElement("div");
+        signalItem.className = "signal-item";
+
+        const iconClass =
+          signal.type === "buy"
+            ? "buy"
+            : signal.type === "sell"
+            ? "sell"
+            : "hold";
+        const icon =
+          signal.type === "buy"
+            ? "fa-arrow-up"
+            : signal.type === "sell"
+            ? "fa-arrow-down"
+            : "fa-pause";
+
+        signalItem.innerHTML = `
+    <div class="signal-icon ${iconClass}">
+      <i class="fas ${icon}"></i>
+    </div>
+    <div class="signal-content">
+      <div class="signal-crypto">${signal.crypto}</div>
+      <div class="signal-message">${signal.message}</div>
+    </div>
+    <div class="signal-time">${signal.time}</div>
+  `;
+
+        return signalItem;
+      }
+
+      function showDefaultSignals() {
+        const signalsContainer = document.querySelector(".signals-container");
+        signalsContainer.innerHTML = `
+    <div class="signal-item">
+      <div class="signal-icon buy">
+        <i class="fas fa-arrow-up"></i>
+      </div>
+      <div class="signal-content">
+        <div class="signal-crypto">Bitcoin (BTC)</div>
+        <div class="signal-message">
+          Strong buy signal detected. RSI below 30 indicates oversold conditions.
+        </div>
+      </div>
+      <div class="signal-time">Just now</div>
+    </div>
+    <div class="signal-item">
+      <div class="signal-icon sell">
+        <i class="fas fa-arrow-down"></i>
+      </div>
+      <div class="signal-content">
+        <div class="signal-crypto">Cardano (ADA)</div>
+        <div class="signal-message">
+          Consider taking profits. Resistance level approaching at $0.45.
+        </div>
+      </div>
+      <div class="signal-time">5 min ago</div>
+    </div>
+    <div class="signal-item">
+      <div class="signal-icon hold">
+        <i class="fas fa-pause"></i>
+      </div>
+      <div class="signal-content">
+        <div class="signal-crypto">Ethereum (ETH)</div>
+        <div class="signal-message">
+          Neutral signal. Waiting for breakout above $1,800 resistance.
+        </div>
+      </div>
+      <div class="signal-time">1 hour ago</div>
+    </div>
+    <div class="signals-timestamp">Using default signals - API unavailable</div>
+  `;
+      }
+
+      // Add styles for timestamp (add to your CSS)
+      const signalsTimestampStyle = `
+  .signals-timestamp {
+    text-align: right;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+`;
+
+      const styleElement = document.createElement("style");
+      styleElement.textContent = signalsTimestampStyle;
+      document.head.appendChild(styleElement);
+    </script>
+    <script src="security.js"></script>
+  </body>
+</html>

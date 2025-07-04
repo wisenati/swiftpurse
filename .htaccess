@@ -1,0 +1,11 @@
+<IfModule mod_headers.c>
+    # Security Headers
+    Header set X-XSS-Protection "1; mode=block"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-Content-Type-Options "nosniff"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' https://codehubme.wordpress.com data:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self' https://ecommerce-79bf2-default-rtdb.firebaseio.com; frame-src 'self';"
+    Header set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()"
+    Header set Expect-CT "max-age=86400, enforce"
+</IfModule>

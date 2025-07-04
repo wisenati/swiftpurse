@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SwiftPurse - Guess & Win</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+    <style>
+      :root {
+        --primary-gradient: linear-gradient(135deg, #5a189a 0%, #10002b 100%);
+        --secondary-gradient: linear-gradient(135deg, #10002b 0%, #5a189a 100%);
+        --accent-gradient: linear-gradient(135deg, #f15bb5 0%, #9b5de5 100%);
+        --dark-gradient: #10002b;
+        --glass-bg: rgba(255, 255, 255, 0.1);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --text-primary: #ffffff;
+        --text-secondary: rgba(255, 255, 255, 0.8);
+        --success-color: #38b000;
+        --error-color: #d00000;
+        --bitcoin-color: #f7931a;
+        --ethereum-color: #627eea;
+        --cardano-color: #0033ad;
+        --solana-color: #00ffbd;
+        --ripple-color: #27a2db;
+        --win-color: #00e676;
+        --lose-color: #ff5252;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--dark-gradient);
+        min-height: 100vh;
+        color: var(--text-primary);
+        overflow-x: hidden;
+      }
+
+      /* Header */
+      .header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 15px 30px;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--glass-border);
+        z-index: 1000;
+        animation: slideDown 0.8s ease-out;
+      }
+
+      .nav-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        transition: transform 0.3s ease;
+      }
+
+      .logo:hover {
+        transform: scale(1.1) rotate(5deg);
+      }
+
+      .brand-name {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-primary);
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .nav-menu {
+        display: flex;
+        gap: 30px;
+        align-items: center;
+      }
+
+      .nav-link {
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        position: relative;
+      }
+
+      .nav-link:hover {
+        color: var(--text-primary);
+        transform: translateY(-2px);
+      }
+
+      .nav-link::after {
+        content: "";
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: var(--accent-gradient);
+        transition: width 0.3s ease;
+      }
+
+      .nav-link:hover::after {
+        width: 100%;
+      }
+
+      .mobile-menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        font-size: 24px;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+      }
+
+      .mobile-menu-toggle:hover {
+        transform: scale(1.1);
+      }
+
+      /* Main Content */
+      .main-content {
+        min-height: 100vh;
+        padding: 120px 20px 50px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      /* Game Container */
+      .game-container {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+      }
+
+      /* Game Section */
+      .game-section {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 30px;
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        animation: fadeIn 0.8s ease-out;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .game-section::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.1) 0%,
+          transparent 70%
+        );
+        animation: rotate 15s linear infinite;
+        z-index: -1;
+      }
+
+      .section-title {
+        font-size: 22px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        position: relative;
+        padding-bottom: 10px;
+      }
+
+      .section-title::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 60px;
+        height: 3px;
+        background: var(--accent-gradient);
+        border-radius: 3px;
+      }
+
+      /* Question Card */
+      .question-card {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 25px;
+        border: 1px solid var(--glass-border);
+        animation: pulseGlow 2s infinite alternate;
+      }
+
+      @keyframes pulseGlow {
+        0% {
+          box-shadow: 0 0 10px rgba(241, 91, 181, 0.3);
+        }
+        100% {
+          box-shadow: 0 0 20px rgba(241, 91, 181, 0.5);
+        }
+      }
+
+      .question-text {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 15px;
+        text-align: center;
+      }
+
+      .crypto-info {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .crypto-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: white;
+      }
+
+      .crypto-icon.bitcoin {
+        background-color: var(--bitcoin-color);
+      }
+      .crypto-icon.ethereum {
+        background-color: var(--ethereum-color);
+      }
+      .crypto-icon.cardano {
+        background-color: var(--cardano-color);
+      }
+      .crypto-icon.solana {
+        background-color: var(--solana-color);
+      }
+
+      .crypto-name {
+        font-weight: 600;
+        font-size: 18px;
+      }
+
+      .current-price {
+        font-size: 24px;
+        font-weight: 700;
+        text-align: center;
+        margin: 15px 0;
+      }
+
+      .price-change {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        margin-left: 10px;
+      }
+
+      .price-change.positive {
+        background-color: rgba(56, 176, 0, 0.2);
+        color: var(--success-color);
+      }
+
+      .price-change.negative {
+        background-color: rgba(208, 0, 0, 0.2);
+        color: var(--error-color);
+      }
+
+      /* Options */
+      .options-container {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 25px;
+        justify-content: center;
+      }
+
+      .option-btn {
+        flex: 1;
+        max-width: 200px;
+        padding: 15px;
+        border-radius: 12px;
+        border: none;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .option-btn.yes {
+        background: var(--success-color);
+        color: white;
+      }
+
+      .option-btn.no {
+        background: var(--error-color);
+        color: white;
+      }
+
+      .option-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .option-btn:hover:not(:disabled) {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Stake Input */
+      .stake-container {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border: 1px solid var(--glass-border);
+      }
+
+      .stake-label {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 16px;
+        color: var(--text-secondary);
+      }
+
+      .stake-input-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .stake-input {
+        flex: 1;
+        padding: 12px 15px;
+        border-radius: 10px;
+        border: 1px solid var(--glass-border);
+        background: var(--glass-bg);
+        color: var(--text-primary);
+        font-size: 16px;
+        transition: all 0.3s ease;
+      }
+
+      .stake-input:focus {
+        outline: none;
+        border-color: var(--accent-gradient);
+        box-shadow: 0 0 0 2px rgba(241, 91, 181, 0.3);
+      }
+
+      .stake-btn {
+        padding: 12px 25px;
+        border-radius: 10px;
+        border: none;
+        background: var(--accent-gradient);
+        color: white;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .stake-btn:hover:not(:disabled) {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      .stake-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .min-max-info {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin-top: 10px;
+        text-align: center;
+      }
+
+      /* Timer */
+      .timer-container {
+        text-align: center;
+        margin: 20px 0;
+      }
+
+      .timer {
+        font-size: 48px;
+        font-weight: 700;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+        animation: pulse 1s infinite alternate;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+        }
+        100% {
+          transform: scale(1.05);
+        }
+      }
+
+      .timer-label {
+        font-size: 16px;
+        color: var(--text-secondary);
+      }
+
+      /* Results */
+      .results-container {
+        display: none;
+        text-align: center;
+        margin: 20px 0;
+      }
+
+      .result-icon {
+        font-size: 60px;
+        margin-bottom: 20px;
+        animation: bounceIn 0.8s ease-out;
+      }
+
+      @keyframes bounceIn {
+        0% {
+          transform: scale(0.1);
+          opacity: 0;
+        }
+        60% {
+          transform: scale(1.2);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .result-title {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      .result-message {
+        font-size: 18px;
+        margin-bottom: 20px;
+        color: var(--text-secondary);
+      }
+
+      .result-amount {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 20px;
+      }
+
+      .continue-btn {
+        padding: 12px 30px;
+        border-radius: 10px;
+        border: none;
+        background: var(--accent-gradient);
+        color: white;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .continue-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      /* History Section */
+      .history-section {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 30px;
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        animation: fadeIn 0.8s ease-out;
+      }
+
+      .history-list {
+        margin-top: 20px;
+      }
+
+      .history-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .history-item:last-child {
+        border-bottom: none;
+      }
+
+      .history-crypto {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .history-details {
+        text-align: right;
+      }
+
+      .history-amount {
+        font-weight: 600;
+      }
+
+      .history-result {
+        font-size: 14px;
+        margin-top: 3px;
+      }
+
+      .win {
+        color: var(--win-color);
+      }
+
+      .loss {
+        color: var(--lose-color);
+      }
+
+      /* Modal */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
+
+      .modal-overlay.active {
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      .modal-content {
+        background: var(--primary-gradient);
+        border-radius: 20px;
+        padding: 40px;
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+        position: relative;
+        transform: scale(0.8);
+        transition: transform 0.3s ease;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        border: 1px solid var(--glass-border);
+      }
+
+      .modal-overlay.active .modal-content {
+        transform: scale(1);
+      }
+
+      .modal-icon {
+        font-size: 80px;
+        margin-bottom: 20px;
+        animation: bounceIn 0.8s ease-out;
+      }
+
+      .modal-title {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 15px;
+      }
+
+      .modal-message {
+        font-size: 18px;
+        margin-bottom: 25px;
+        color: var(--text-secondary);
+      }
+
+      .modal-amount {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 25px;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .modal-btn {
+        padding: 12px 30px;
+        border-radius: 10px;
+        border: none;
+        background: var(--accent-gradient);
+        color: white;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .modal-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      /* Animations */
+      @keyframes slideDown {
+        from {
+          transform: translateY(-100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes rotate {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Ripple effect */
+      .ripple {
+        position: absolute;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.3);
+        transform: scale(0);
+        animation: ripple-animation 0.6s linear;
+        pointer-events: none;
+      }
+
+      @keyframes ripple-animation {
+        to {
+          transform: scale(4);
+          opacity: 0;
+        }
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .nav-menu {
+          display: none;
+        }
+
+        .mobile-menu-toggle {
+          display: block;
+        }
+
+        .options-container {
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .option-btn {
+          max-width: 100%;
+          width: 100%;
+        }
+
+        .stake-input-container {
+          flex-direction: column;
+        }
+
+        .stake-btn {
+          width: 100%;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .header {
+          padding: 15px 20px;
+        }
+
+        .game-section,
+        .history-section {
+          padding: 20px;
+        }
+
+        .question-text {
+          font-size: 18px;
+        }
+
+        .current-price {
+          font-size: 20px;
+        }
+
+        .timer {
+          font-size: 36px;
+        }
+
+        .modal-content {
+          padding: 30px 20px;
+        }
+
+        .modal-title {
+          font-size: 26px;
+        }
+
+        .modal-message {
+          font-size: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="header">
+      <div class="nav-container">
+        <div class="logo-container">
+          <img
+            src="https://codehubme.wordpress.com/wp-content/uploads/2025/06/file_00000000882c62439bbd2b1da125b80a_1-removebg-preview5089134587099523797.png"
+            alt="SwiftPurse Logo"
+            class="logo"
+          />
+          <span class="brand-name">SwiftPurse</span>
+        </div>
+        <nav class="nav-menu">
+          <a href="dashboard.html" class="nav-link">Dashboard</a>
+          <a href="transaction.html" class="nav-link">Transactions</a>
+          <a href="Guess.html" class="nav-link active">Guess & Win</a>
+          <a href="setting.html" class="nav-link">Settings</a>
+          <a href="chat.html" class="nav-link">Send Message</a>
+          <a href="swap.html" class="nav-link">Swap NGN to $$</a>
+        </nav>
+        <button class="mobile-menu-toggle" id="mobileMenuToggle">
+          <i class="fas fa-bars"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="game-container">
+        <!-- Game Section -->
+        <section class="game-section">
+          <h2 class="section-title">
+            <i class="fas fa-gamepad"></i> Guess & Win
+          </h2>
+
+          <div class="question-card">
+            <div class="question-text" id="questionText">
+              Loading question...
+            </div>
+
+            <div class="crypto-info">
+              <div class="crypto-icon" id="cryptoIcon">
+                <i class="fab fa-bitcoin"></i>
+              </div>
+              <div class="crypto-name" id="cryptoName">Bitcoin</div>
+            </div>
+
+            <div class="current-price">
+              Current Price: <span id="currentPrice">$0.00</span>
+              <span class="price-change" id="priceChange">0.00%</span>
+            </div>
+          </div>
+
+          <div class="options-container">
+            <button class="option-btn yes" id="yesBtn">
+              <i class="fas fa-check-circle"></i> Yes
+            </button>
+            <button class="option-btn no" id="noBtn">
+              <i class="fas fa-times-circle"></i> No
+            </button>
+          </div>
+
+          <div class="stake-container">
+            <label class="stake-label" for="stakeAmount"
+              >Stake Amount ($)</label
+            >
+            <div class="stake-input-container">
+              <input
+                type="number"
+                class="stake-input"
+                id="stakeAmount"
+                min="1"
+                value="1"
+                step="0.1"
+              />
+              <button class="stake-btn" id="placeBetBtn">Place Bet</button>
+            </div>
+            <div class="min-max-info">
+              Minimum stake: $1 | Maximum stake: $1000
+            </div>
+          </div>
+
+          <div
+            class="timer-container"
+            id="timerContainer"
+            style="display: none"
+          >
+            <div class="timer" id="timer">60</div>
+            <div class="timer-label">Seconds Remaining</div>
+          </div>
+
+          <div class="results-container" id="resultsContainer">
+            <div class="result-icon" id="resultIcon">
+              <i class="fas fa-question-circle"></i>
+            </div>
+            <h3 class="result-title" id="resultTitle">Result</h3>
+            <p class="result-message" id="resultMessage">
+              Waiting for results...
+            </p>
+            <div class="result-amount" id="resultAmount">$0.00</div>
+            <button class="continue-btn" id="continueBtn">Continue</button>
+          </div>
+        </section>
+
+        <!-- History Section -->
+        <section class="history-section">
+          <h2 class="section-title">
+            <i class="fas fa-history"></i> Your Game History
+          </h2>
+
+          <div class="history-list" id="historyList">
+            <div class="history-empty">No games played yet</div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Result Modal -->
+    <div class="modal-overlay" id="resultModal">
+      <div class="modal-content">
+        <div class="modal-icon" id="modalIcon">
+          <i class="fas fa-trophy"></i>
+        </div>
+        <h2 class="modal-title" id="modalTitle">Congratulations!</h2>
+        <p class="modal-message" id="modalMessage">You've won the game!</p>
+        <div class="modal-amount" id="modalAmount">+$23.00</div>
+        <button class="modal-btn" id="modalBtn">Continue</button>
+      </div>
+    </div>
+
+    <script>
+      // Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyBNtrsRJoq82G4vSJnNLtcuIgGNMQu7dsw",
+        authDomain: "ecommerce-79bf2.firebaseapp.com",
+        databaseURL: "https://ecommerce-79bf2-default-rtdb.firebaseio.com/",
+        projectId: "ecommerce-79bf2",
+        storageBucket: "ecommerce-79bf2.appspot.com",
+        messagingSenderId: "420163739618",
+        appId: "1:420163739618:android:45d0da5b4acf0fff9663bb",
+      };
+
+      // Initialize Firebase
+      const app = firebase.initializeApp(firebaseConfig);
+      const database = firebase.database();
+
+      // Game variables
+      let currentGame = null;
+      let timerInterval = null;
+      let timeLeft = 30;
+      let startPrice = 0;
+      let selectedOption = null;
+      let stakeAmount = 1;
+      let gameActive = false;
+
+      // DOM elements
+      const questionText = document.getElementById("questionText");
+      const cryptoIcon = document.getElementById("cryptoIcon");
+      const cryptoName = document.getElementById("cryptoName");
+      const currentPrice = document.getElementById("currentPrice");
+      const priceChange = document.getElementById("priceChange");
+      const yesBtn = document.getElementById("yesBtn");
+      const noBtn = document.getElementById("noBtn");
+      const stakeAmountInput = document.getElementById("stakeAmount");
+      const placeBetBtn = document.getElementById("placeBetBtn");
+      const timerContainer = document.getElementById("timerContainer");
+      const timer = document.getElementById("timer");
+      const resultsContainer = document.getElementById("resultsContainer");
+      const resultIcon = document.getElementById("resultIcon");
+      const resultTitle = document.getElementById("resultTitle");
+      const resultMessage = document.getElementById("resultMessage");
+      const resultAmount = document.getElementById("resultAmount");
+      const continueBtn = document.getElementById("continueBtn");
+      const historyList = document.getElementById("historyList");
+      const resultModal = document.getElementById("resultModal");
+      const modalIcon = document.getElementById("modalIcon");
+      const modalTitle = document.getElementById("modalTitle");
+      const modalMessage = document.getElementById("modalMessage");
+      const modalAmount = document.getElementById("modalAmount");
+      const modalBtn = document.getElementById("modalBtn");
+
+      // Crypto data
+      const cryptos = [
+        {
+          id: "bitcoin",
+          name: "Bitcoin",
+          symbol: "BTC",
+          iconClass: "bitcoin",
+          icon: "fab fa-bitcoin",
+        },
+        {
+          id: "ethereum",
+          name: "Ethereum",
+          symbol: "ETH",
+          iconClass: "ethereum",
+          icon: "fab fa-ethereum",
+        },
+        {
+          id: "cardano",
+          name: "Cardano",
+          symbol: "ADA",
+          iconClass: "cardano",
+          icon: "fab fa-ada",
+        },
+        {
+          id: "solana",
+          name: "Solana",
+          symbol: "SOL",
+          iconClass: "solana",
+          icon: "fas fa-chart-line",
+        },
+      ];
+
+      // When DOM is loaded
+      document.addEventListener("DOMContentLoaded", function () {
+        // Check if user is logged in
+        const userId = sessionStorage.getItem("swiftPurseUserId");
+        if (!userId) {
+          window.location.href = "login.html";
+          return;
+        }
+
+        // Load user game history
+        loadGameHistory(userId);
+
+        // Generate new question
+        generateNewQuestion();
+
+        // Event listeners
+        yesBtn.addEventListener("click", () => selectOption("yes"));
+        noBtn.addEventListener("click", () => selectOption("no"));
+        placeBetBtn.addEventListener("click", placeBet);
+        continueBtn.addEventListener("click", resetGame);
+        modalBtn.addEventListener("click", () =>
+          resultModal.classList.remove("active")
+        );
+        stakeAmountInput.addEventListener("input", validateStakeAmount);
+
+        // Add ripple effect to buttons
+        document
+          .querySelectorAll(
+            ".option-btn, .stake-btn, .continue-btn, .modal-btn"
+          )
+          .forEach((button) => {
+            button.addEventListener("click", createRipple);
+          });
+      });
+
+      // Generate a new question
+      function generateNewQuestion() {
+        // Reset game state
+        resetGameState();
+
+        // Select a random crypto
+        const crypto = cryptos[Math.floor(Math.random() * cryptos.length)];
+
+        // Generate a random amount (between 10 and 200, in increments of 5)
+        const amount = Math.floor(Math.random() * 9) * 2 + 1;
+
+        // Generate a random time frame (30, 60, or 90 seconds)
+        const timeFrame = [30, 30, 30][Math.floor(Math.random() * 3)];
+
+        // Set the question
+        questionText.textContent = `Will the current price of ${crypto.name} rise by $${amount} in the next ${timeFrame} seconds?`;
+
+        // Set crypto info
+        cryptoName.textContent = crypto.name;
+        cryptoIcon.className = `crypto-icon ${crypto.iconClass}`;
+        cryptoIcon.innerHTML = `<i class="${crypto.icon}"></i>`;
+
+        // Store current game data
+        currentGame = {
+          crypto: crypto,
+          amount: amount,
+          timeFrame: timeFrame,
+          startTime: null,
+          endTime: null,
+          startPrice: 0,
+          endPrice: 0,
+          userChoice: null,
+          stakeAmount: 0,
+          result: null,
+          reward: 0,
+        };
+
+        // Fetch current price
+        fetchCryptoPrice(crypto.id);
+      }
+
+      // Fetch current crypto price from CoinGecko API
+      async function fetchCryptoPrice(cryptoId) {
+        try {
+          const response = await fetch(
+            `https://api.coingecko.com/api/v3/simple/price?ids=${cryptoId}&vs_currencies=usd&include_24hr_change=true`
+          );
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch crypto price");
+          }
+
+          const data = await response.json();
+          const price = data[cryptoId].usd;
+          const change = data[cryptoId].usd_24h_change;
+
+          // Update UI
+          currentPrice.textContent = `$${price.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`;
+          priceChange.textContent = `${change >= 0 ? "+" : ""}${change.toFixed(
+            2
+          )}%`;
+          priceChange.className = `price-change ${
+            change >= 0 ? "positive" : "negative"
+          }`;
+
+          // Store start price
+          startPrice = price;
+          if (currentGame) currentGame.startPrice = price;
+        } catch (error) {
+          console.error("Error fetching crypto price:", error);
+          currentPrice.textContent = "$0.00";
+          priceChange.textContent = "0.00%";
+          priceChange.className = "price-change";
+        }
+      }
+
+      // Select option (yes or no)
+      function selectOption(option) {
+        selectedOption = option;
+
+        // Highlight selected option
+        if (option === "yes") {
+          yesBtn.classList.add("active");
+          noBtn.classList.remove("active");
+        } else {
+          noBtn.classList.add("active");
+          yesBtn.classList.remove("active");
+        }
+
+        // Enable stake button if amount is valid
+        validateStakeAmount();
+      }
+
+      // Validate stake amount
+      function validateStakeAmount() {
+        stakeAmount = parseFloat(stakeAmountInput.value);
+
+        if (isNaN(stakeAmount)) {
+          placeBetBtn.disabled = true;
+          return;
+        }
+
+        // Check min and max
+        if (stakeAmount < 1 || stakeAmount > 1000) {
+          placeBetBtn.disabled = true;
+          return;
+        }
+
+        // Check if option is selected
+        placeBetBtn.disabled = !selectedOption;
+      }
+
+      // Place bet
+      function placeBet() {
+        if (!currentGame || !selectedOption) return;
+
+        // Get stake amount
+        stakeAmount = parseFloat(stakeAmountInput.value);
+        if (isNaN(stakeAmount) || stakeAmount < 1 || stakeAmount > 1000) return;
+
+        // Disable all inputs
+        yesBtn.disabled = true;
+        noBtn.disabled = true;
+        stakeAmountInput.disabled = true;
+        placeBetBtn.disabled = true;
+
+        // Set game as active
+        gameActive = true;
+
+        // Store stake amount
+        currentGame.stakeAmount = stakeAmount;
+        currentGame.userChoice = selectedOption;
+        currentGame.startTime = new Date().toISOString();
+
+        // Show timer
+        timerContainer.style.display = "block";
+        resultsContainer.style.display = "none";
+
+        // Start timer
+        timeLeft = currentGame.timeFrame;
+        timer.textContent = timeLeft;
+
+        timerInterval = setInterval(() => {
+          timeLeft--;
+          timer.textContent = timeLeft;
+
+          if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            endGame();
+          }
+        }, 1000);
+      }
+
+      // End game and check result
+      async function endGame() {
+        if (!currentGame || !gameActive) return;
+
+        // Fetch final price
+        try {
+          const response = await fetch(
+            `https://api.coingecko.com/api/v3/simple/price?ids=${currentGame.crypto.id}&vs_currencies=usd`
+          );
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch final crypto price");
+          }
+
+          const data = await response.json();
+          const endPrice = data[currentGame.crypto.id].usd;
+
+          // Store end price
+          currentGame.endPrice = endPrice;
+          currentGame.endTime = new Date().toISOString();
+
+          // Calculate price change
+          const priceChange = endPrice - startPrice;
+
+          // Determine result
+          let result, reward;
+
+          if (currentGame.userChoice === "yes") {
+            if (priceChange >= currentGame.amount) {
+              result = "win";
+              reward = currentGame.stakeAmount * 1.23; // 23% reward
+            } else {
+              result = "loss";
+              reward = 0;
+            }
+          } else {
+            if (priceChange < currentGame.amount) {
+              result = "win";
+              reward = currentGame.stakeAmount * 1.17; // 17% reward
+            } else {
+              result = "loss";
+              reward = 0;
+            }
+          }
+
+          // Store result
+          currentGame.result = result;
+          currentGame.reward = reward;
+
+          // Update user balance in Firebase if won
+          if (result === "win") {
+            const userId = sessionStorage.getItem("swiftPurseUserId");
+            const userRef = database.ref("swiftusers/" + userId);
+
+            userRef.once("value").then((snapshot) => {
+              const userData = snapshot.val();
+              if (userData) {
+                const newBalance = parseFloat(userData.balance) + reward;
+                userRef.update({ balance: newBalance });
+              }
+            });
+          }
+
+          // Save game to history
+          saveGameToHistory();
+
+          // Show results
+          showResults(result, reward);
+        } catch (error) {
+          console.error("Error ending game:", error);
+          showResults("error", 0);
+        }
+      }
+
+      // Show results
+      function showResults(result, reward) {
+        // Hide timer
+        timerContainer.style.display = "none";
+
+        // Show results container
+        resultsContainer.style.display = "block";
+
+        // Set results based on outcome
+        if (result === "win") {
+          resultIcon.innerHTML = '<i class="fas fa-trophy"></i>';
+          resultIcon.style.color = "var(--win-color)";
+          resultTitle.textContent = "Congratulations!";
+          resultMessage.textContent = `Your prediction was correct! ${
+            currentGame.crypto.name
+          } ${currentGame.userChoice === "yes" ? "rose" : "did not rise"} by $${
+            currentGame.amount
+          } in ${currentGame.timeFrame} seconds.`;
+          resultAmount.textContent = `+$${reward.toFixed(2)}`;
+          resultAmount.style.color = "var(--win-color)";
+
+          // Show modal for win
+          modalIcon.innerHTML = '<i class="fas fa-trophy"></i>';
+          modalIcon.style.color = "var(--win-color)";
+          modalTitle.textContent = "You Won!";
+          modalMessage.textContent = `Your prediction about ${currentGame.crypto.name} was correct!`;
+          modalAmount.textContent = `+$${reward.toFixed(2)}`;
+          resultModal.classList.add("active");
+        } else if (result === "loss") {
+          resultIcon.innerHTML = '<i class="fas fa-sad-tear"></i>';
+          resultIcon.style.color = "var(--lose-color)";
+          resultTitle.textContent = "Better Luck Next Time!";
+          resultMessage.textContent = `Your prediction was incorrect. ${
+            currentGame.crypto.name
+          } ${currentGame.userChoice === "yes" ? "did not rise" : "rose"} by $${
+            currentGame.amount
+          } in ${currentGame.timeFrame} seconds.`;
+          resultAmount.textContent = `-$${currentGame.stakeAmount.toFixed(2)}`;
+          resultAmount.style.color = "var(--lose-color)";
+
+          // Show modal for loss
+          modalIcon.innerHTML = '<i class="fas fa-sad-tear"></i>';
+          modalIcon.style.color = "var(--lose-color)";
+          modalTitle.textContent = "You Lost";
+          modalMessage.textContent = `Your prediction about ${currentGame.crypto.name} was incorrect.`;
+          modalAmount.textContent = `-$${currentGame.stakeAmount.toFixed(2)}`;
+          resultModal.classList.add("active");
+        } else {
+          resultIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+          resultIcon.style.color = "orange";
+          resultTitle.textContent = "Error";
+          resultMessage.textContent =
+            "There was an error processing your game. Please try again.";
+          resultAmount.textContent = "$0.00";
+        }
+
+        // Game is no longer active
+        gameActive = false;
+      }
+
+      // Reset game state
+      function resetGame() {
+        // Clear timer
+        if (timerInterval) clearInterval(timerInterval);
+
+        // Reset UI
+        yesBtn.disabled = false;
+        noBtn.disabled = false;
+        stakeAmountInput.disabled = false;
+        placeBetBtn.disabled = false;
+
+        yesBtn.classList.remove("active");
+        noBtn.classList.remove("active");
+
+        timerContainer.style.display = "none";
+        resultsContainer.style.display = "none";
+
+        // Reset game state
+        resetGameState();
+
+        // Generate new question
+        generateNewQuestion();
+      }
+
+      // Reset game state variables
+      function resetGameState() {
+        selectedOption = null;
+        timeLeft = 60;
+        gameActive = false;
+
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+      }
+
+      // Save game to history in Firebase
+      function saveGameToHistory() {
+        if (!currentGame) return;
+
+        const userId = sessionStorage.getItem("swiftPurseUserId");
+        if (!userId) return;
+
+        const gameRef = database.ref(`gameHistory/${userId}`).push();
+        gameRef.set({
+          crypto: currentGame.crypto.name,
+          symbol: currentGame.crypto.symbol,
+          amount: currentGame.amount,
+          timeFrame: currentGame.timeFrame,
+          startPrice: currentGame.startPrice,
+          endPrice: currentGame.endPrice,
+          userChoice: currentGame.userChoice,
+          stakeAmount: currentGame.stakeAmount,
+          result: currentGame.result,
+          reward: currentGame.reward,
+          timestamp: firebase.database.ServerValue.TIMESTAMP,
+        });
+
+        // Reload history
+        loadGameHistory(userId);
+      }
+
+      // Load game history from Firebase
+      function loadGameHistory(userId) {
+        if (!userId) return;
+
+        const historyRef = database
+          .ref(`gameHistory/${userId}`)
+          .orderByChild("timestamp")
+          .limitToLast(10);
+
+        historyRef.on("value", (snapshot) => {
+          const historyData = snapshot.val();
+          historyList.innerHTML = "";
+
+          if (!historyData) {
+            historyList.innerHTML =
+              '<div class="history-empty">No games played yet</div>';
+            return;
+          }
+
+          // Convert to array and reverse to show newest first
+          const historyArray = Object.entries(historyData)
+            .map(([key, value]) => ({
+              id: key,
+              ...value,
+            }))
+            .reverse();
+
+          historyArray.forEach((game) => {
+            const historyItem = document.createElement("div");
+            historyItem.className = "history-item";
+
+            const cryptoIconClass =
+              game.symbol.toLowerCase() === "btc"
+                ? "bitcoin"
+                : game.symbol.toLowerCase() === "eth"
+                ? "ethereum"
+                : game.symbol.toLowerCase() === "ada"
+                ? "cardano"
+                : "solana";
+
+            const cryptoIcon =
+              game.symbol.toLowerCase() === "btc"
+                ? "fab fa-bitcoin"
+                : game.symbol.toLowerCase() === "eth"
+                ? "fab fa-ethereum"
+                : game.symbol.toLowerCase() === "ada"
+                ? "fab fa-ada"
+                : "fas fa-chart-line";
+
+            historyItem.innerHTML = `
+                      <div class="history-crypto">
+                          <div class="crypto-icon ${cryptoIconClass}">
+                              <i class="${cryptoIcon}"></i>
+                          </div>
+                          <div>${game.crypto} (${game.symbol})</div>
+                      </div>
+                      <div class="history-details">
+                          <div class="history-amount">$${game.stakeAmount.toFixed(
+                            2
+                          )}</div>
+                          <div class="history-result ${game.result}">
+                              ${
+                                game.result === "win"
+                                  ? "Won $" + game.reward.toFixed(2)
+                                  : "Lost"
+                              }
+                          </div>
+                      </div>
+                  `;
+
+            historyList.appendChild(historyItem);
+          });
+        });
+      }
+
+      // Create ripple effect on buttons
+      function createRipple(event) {
+        const button = event.currentTarget;
+        const circle = document.createElement("span");
+        const diameter = Math.max(button.clientWidth, button.clientHeight);
+        const radius = diameter / 2;
+
+        circle.style.width = circle.style.height = `${diameter}px`;
+        circle.style.left = `${
+          event.clientX - button.getBoundingClientRect().left - radius
+        }px`;
+        circle.style.top = `${
+          event.clientY - button.getBoundingClientRect().top - radius
+        }px`;
+        circle.classList.add("ripple");
+
+        const ripple = button.getElementsByClassName("ripple")[0];
+        if (ripple) {
+          ripple.remove();
+        }
+
+        button.appendChild(circle);
+      }
+    </script>
+    <script src="security.js"></script>
+  </body>
+</html>
