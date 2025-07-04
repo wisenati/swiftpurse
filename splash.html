@@ -945,33 +945,48 @@
     </script>
     <script src="security.js"></script>
     <script>
+      // ====== Shared Functions ======
       // Request notification permission
       async function requestNotificationPermission() {
         const permission = await Notification.requestPermission();
         if (permission === "granted") {
           console.log("Notification permission granted.");
-          scheduleNotifications();
+          // Uncomment ONE of these based on your needs:
+          // scheduleDailyNotifications(); // For 8AM/9PM alerts
+          scheduleMinuteNotifications(); // For minute-by-minute alerts
         } else {
           console.log("Notification permission denied.");
         }
       }
 
-      // Schedule notifications at 8 PM and 9 AM
-      function scheduleNotifications() {
+      // Show notification (shared helper)
+      function showNotification(title, body) {
+        if (Notification.permission === "granted") {
+          navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification(title, {
+              body: body,
+              icon: "wallet.png",
+              vibrate: [200, 100, 200],
+            });
+          });
+        }
+      }
+
+      // ====== Notification Schedulers ======
+      // Option 1: Daily at 8AM & 9PM
+      function scheduleDailyNotifications() {
         const now = new Date();
-        const currentHour = now.getHours();
 
         // Dinner reminder at 8 PM (20:00)
         const dinnerTime = new Date();
-        dinnerTime.setHours(20, 0, 0, 0); // 8:00 PM
+        dinnerTime.setHours(20, 0, 0, 0);
         const timeUntilDinner = dinnerTime - now;
 
         // Wake-up reminder at 9 AM (09:00)
         const wakeUpTime = new Date();
-        wakeUpTime.setHours(9, 0, 0, 0); // 9:00 AM
+        wakeUpTime.setHours(9, 0, 0, 0);
         const timeUntilWakeUp = wakeUpTime - now;
 
-        // Schedule notifications if time is in the future
         if (timeUntilDinner > 0) {
           setTimeout(() => {
             showNotification(
@@ -987,99 +1002,39 @@
           }, timeUntilWakeUp);
         }
 
-        // Re-schedule every 24 hours
-        setInterval(scheduleNotifications, 24 * 60 * 60 * 1000);
+        // Re-schedule daily
+        setInterval(scheduleDailyNotifications, 24 * 60 * 60 * 1000);
       }
 
-      // Show notification
-      function showNotification(title, body) {
-        if (Notification.permission === "granted") {
-          navigator.serviceWorker.ready.then((registration) => {
-            registration.showNotification(title, {
-              body: body,
-              icon: "wallet.png",
-              vibrate: [200, 100, 200],
-            });
-          });
-        }
-      }
-
-      // Enable notifications button
-      document
-        .getElementById("enableNotifications")
-        .addEventListener("click", requestNotificationPermission);
-
-      // Check permission on page load
-      if ("Notification" in window && "serviceWorker" in navigator) {
-        Notification.requestPermission().then((permission) => {
-          if (permission === "granted") {
-            scheduleNotifications();
-          }
-        });
-      }
-    </script>
-    <script>
-      // Register Service Worker
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("/sw.js")
-            .then((registration) => console.log("SW registered!"))
-            .catch((err) => console.log("SW registration failed:", err));
-        });
-      }
-    </script>
-    <script>
-      // Request notification permission
-      async function requestNotificationPermission() {
-        const permission = await Notification.requestPermission();
-        if (permission === "granted") {
-          console.log("Notification permission granted.");
-          scheduleNotifications();
-        } else {
-          console.log("Notification permission denied.");
-        }
-      }
-
-      // Show notifications EVERY MINUTE
-      function scheduleNotifications() {
+      // Option 2: Every Minute
+      function scheduleMinuteNotifications() {
         // First notification (immediately)
         showNotification("⏰ Minute Alert", "This is your minute reminder!");
 
         // Repeat every minute
         setInterval(() => {
           showNotification("⏰ Minute Alert", "This is your minute reminder!");
-        }, 60 * 1000); // 60,000ms = 1 minute
+        }, 60 * 1000);
       }
 
-      // Show notification
-      function showNotification(title, body) {
-        if (Notification.permission === "granted") {
-          navigator.serviceWorker.ready.then((registration) => {
-            registration.showNotification(title, {
-              body: body,
-              icon: "wallet.png",
-              vibrate: [200, 100, 200],
-            });
-          });
-        }
-      }
-
+      // ====== Initialization ======
       // Enable notifications button
       document
         .getElementById("enableNotifications")
         .addEventListener("click", requestNotificationPermission);
 
-      // Check permission on page load
+      // Auto-start if already permitted
       if ("Notification" in window && "serviceWorker" in navigator) {
         Notification.requestPermission().then((permission) => {
           if (permission === "granted") {
-            scheduleNotifications();
+            // Uncomment ONE based on your needs:
+            // scheduleDailyNotifications();
+            scheduleMinuteNotifications();
           }
         });
       }
 
-      // Register Service Worker
+      // Register Service Worker (only needed once)
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
           navigator.serviceWorker
