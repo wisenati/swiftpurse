@@ -654,6 +654,9 @@
         <p class="tagline">
           Secure Crypto Wallet, Trading & Guess-to-Win Platform
         </p>
+        <button id="enableNotifications" class="btn btn-primary">
+          <i class="fas fa-bell"></i> Enable Daily Reminders
+        </button>
 
         <!-- Progress Bar -->
         <div class="progress-container">
@@ -941,5 +944,150 @@
       }
     </script>
     <script src="security.js"></script>
+    <script>
+      // Request notification permission
+      async function requestNotificationPermission() {
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+          console.log("Notification permission granted.");
+          scheduleNotifications();
+        } else {
+          console.log("Notification permission denied.");
+        }
+      }
+
+      // Schedule notifications at 8 PM and 9 AM
+      function scheduleNotifications() {
+        const now = new Date();
+        const currentHour = now.getHours();
+
+        // Dinner reminder at 8 PM (20:00)
+        const dinnerTime = new Date();
+        dinnerTime.setHours(20, 0, 0, 0); // 8:00 PM
+        const timeUntilDinner = dinnerTime - now;
+
+        // Wake-up reminder at 9 AM (09:00)
+        const wakeUpTime = new Date();
+        wakeUpTime.setHours(9, 0, 0, 0); // 9:00 AM
+        const timeUntilWakeUp = wakeUpTime - now;
+
+        // Schedule notifications if time is in the future
+        if (timeUntilDinner > 0) {
+          setTimeout(() => {
+            showNotification(
+              "🍔 Dinner Time!",
+              "It's time to withdraw for dinner!"
+            );
+          }, timeUntilDinner);
+        }
+
+        if (timeUntilWakeUp > 0) {
+          setTimeout(() => {
+            showNotification("⏰ Wake Up!", "You gats to hustle!");
+          }, timeUntilWakeUp);
+        }
+
+        // Re-schedule every 24 hours
+        setInterval(scheduleNotifications, 24 * 60 * 60 * 1000);
+      }
+
+      // Show notification
+      function showNotification(title, body) {
+        if (Notification.permission === "granted") {
+          navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification(title, {
+              body: body,
+              icon: "wallet.png",
+              vibrate: [200, 100, 200],
+            });
+          });
+        }
+      }
+
+      // Enable notifications button
+      document
+        .getElementById("enableNotifications")
+        .addEventListener("click", requestNotificationPermission);
+
+      // Check permission on page load
+      if ("Notification" in window && "serviceWorker" in navigator) {
+        Notification.requestPermission().then((permission) => {
+          if (permission === "granted") {
+            scheduleNotifications();
+          }
+        });
+      }
+    </script>
+    <script>
+      // Register Service Worker
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then((registration) => console.log("SW registered!"))
+            .catch((err) => console.log("SW registration failed:", err));
+        });
+      }
+    </script>
+    <script>
+      // Request notification permission
+      async function requestNotificationPermission() {
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+          console.log("Notification permission granted.");
+          scheduleNotifications();
+        } else {
+          console.log("Notification permission denied.");
+        }
+      }
+
+      // Show notifications EVERY MINUTE
+      function scheduleNotifications() {
+        // First notification (immediately)
+        showNotification("⏰ Minute Alert", "This is your minute reminder!");
+
+        // Repeat every minute
+        setInterval(() => {
+          showNotification("⏰ Minute Alert", "This is your minute reminder!");
+        }, 60 * 1000); // 60,000ms = 1 minute
+      }
+
+      // Show notification
+      function showNotification(title, body) {
+        if (Notification.permission === "granted") {
+          navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification(title, {
+              body: body,
+              icon: "wallet.png",
+              vibrate: [200, 100, 200],
+            });
+          });
+        }
+      }
+
+      // Enable notifications button
+      document
+        .getElementById("enableNotifications")
+        .addEventListener("click", requestNotificationPermission);
+
+      // Check permission on page load
+      if ("Notification" in window && "serviceWorker" in navigator) {
+        Notification.requestPermission().then((permission) => {
+          if (permission === "granted") {
+            scheduleNotifications();
+          }
+        });
+      }
+
+      // Register Service Worker
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then((registration) => console.log("SW registered!"))
+            .catch((err) => console.log("SW registration failed:", err));
+        });
+      }
+    </script>
   </body>
 </html>
