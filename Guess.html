@@ -911,6 +911,7 @@
       let selectedOption = null;
       let stakeAmount = 1;
       let gameActive = false;
+      let userBalance = 0;
 
       // DOM elements
       const questionText = document.getElementById("questionText");
@@ -979,6 +980,9 @@
           return;
         }
 
+        // Load user balance
+        loadUserBalance(userId);
+
         // Load user game history
         loadGameHistory(userId);
 
@@ -1004,6 +1008,17 @@
             button.addEventListener("click", createRipple);
           });
       });
+
+      // Load user balance from Firebase
+      function loadUserBalance(userId) {
+        const userRef = database.ref("swiftusers/" + userId);
+        userRef.on("value", (snapshot) => {
+          const userData = snapshot.val();
+          if (userData && userData.balance) {
+            userBalance = parseFloat(userData.balance);
+          }
+        });
+      }
 
       // Generate a new question
       function generateNewQuestion() {
@@ -1116,6 +1131,13 @@
           return;
         }
 
+        // Check if user has sufficient balance
+        if (stakeAmount > userBalance) {
+          placeBetBtn.disabled = true;
+          alert("Insufficient balance. Please deposit more funds to play.");
+          return;
+        }
+
         // Check if option is selected
         placeBetBtn.disabled = !selectedOption;
       }
@@ -1126,7 +1148,27 @@
 
         // Get stake amount
         stakeAmount = parseFloat(stakeAmountInput.value);
-        if (isNaN(stakeAmount) || stakeAmount < 1 || stakeAmount > 1000) return;
+        if (isNaN(stakeAmount)) {
+          alert("Please enter a valid stake amount");
+          return;
+        }
+
+        // Check min and max stake
+        if (stakeAmount < 1) {
+          alert("Minimum stake amount is $1");
+          return;
+        }
+
+        if (stakeAmount > 1000) {
+          alert("Maximum stake amount is $1000");
+          return;
+        }
+
+        // Check user balance
+        if (stakeAmount > userBalance) {
+          alert("Insufficient balance. Please deposit more funds to play.");
+          return;
+        }
 
         // Disable all inputs
         yesBtn.disabled = true;
@@ -1141,6 +1183,19 @@
         currentGame.stakeAmount = stakeAmount;
         currentGame.userChoice = selectedOption;
         currentGame.startTime = new Date().toISOString();
+
+        // Deduct stake amount from balance immediately
+        const userId = sessionStorage.getItem("swiftPurseUserId");
+        const userRef = database.ref("swiftusers/" + userId);
+
+        userRef.once("value").then((snapshot) => {
+          const userData = snapshot.val();
+          if (userData) {
+            const newBalance = parseFloat(userData.balance) - stakeAmount;
+            userBalance = newBalance;
+            userRef.update({ balance: newBalance });
+          }
+        });
 
         // Show timer
         timerContainer.style.display = "block";
@@ -1219,6 +1274,7 @@
               const userData = snapshot.val();
               if (userData) {
                 const newBalance = parseFloat(userData.balance) + reward;
+                userBalance = newBalance;
                 userRef.update({ balance: newBalance });
               }
             });
@@ -1250,7 +1306,7 @@
           resultTitle.textContent = "Congratulations!";
           resultMessage.textContent = `Your prediction was correct! ${
             currentGame.crypto.name
-          } ${currentGame.userChoice === "yes" ? "rose" : "did not rise"} by $${
+          } ${currentGame.userChoice === "yes" ? "rose" : "did not rise"} by ${
             currentGame.amount
           } in ${currentGame.timeFrame} seconds.`;
           resultAmount.textContent = `+$${reward.toFixed(2)}`;
@@ -1269,7 +1325,7 @@
           resultTitle.textContent = "Better Luck Next Time!";
           resultMessage.textContent = `Your prediction was incorrect. ${
             currentGame.crypto.name
-          } ${currentGame.userChoice === "yes" ? "did not rise" : "rose"} by $${
+          } ${currentGame.userChoice === "yes" ? "did not rise" : "rose"} by ${
             currentGame.amount
           } in ${currentGame.timeFrame} seconds.`;
           resultAmount.textContent = `-$${currentGame.stakeAmount.toFixed(2)}`;
@@ -1456,6 +1512,5 @@
         button.appendChild(circle);
       }
     </script>
-    <script src="security.js"></script>
   </body>
 </html>
